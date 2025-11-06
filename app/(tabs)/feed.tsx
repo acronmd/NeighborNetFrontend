@@ -3,8 +3,8 @@ import { FlatList, View, Text } from 'react-native';
 import Post, { PostType } from '@/app/feed/Post';
 
 const posts: PostType[] = [
-    { id: '1', authorDisplayName: 'Alice', authorUsername: "janedoe", content: 'Hello world!' },
-    { id: '2', authorDisplayName: 'Bob', authorUsername: "johndoe", content: 'React Native is cool!' },
+    { id: '1', authorDisplayName: 'Alice', authorUsername: "janedoe", location: "2.45 miles", content: 'Hello world!' },
+    { id: '2', authorDisplayName: 'Bob', authorUsername: "johndoe", location: "1.22 miles", content: 'React Native is cool!' },
 ];
 
 export default function FeedScreen() {
