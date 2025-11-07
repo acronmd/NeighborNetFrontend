@@ -1,24 +1,12 @@
 import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 
-export type PostType = {
-    id: string;
-    authorDisplayName: string;
-    authorUsername: string;
-    avatarUrl?: string;
-    location: string;
-    content: string; // main text content
-    contentType: 'text' | 'poll' | 'media' | 'media+text';
-    mediaUrls?: string[]; // optional, only used for media or media+text
-    pollOptions?: string[]; // optional, only used for polls
-};
+import { PostType, User } from "@/app/masterPosts/masterPostList";
+
 
 export default function Post({
                                  id,
-                                 authorDisplayName,
-                                 authorUsername,
-                                 avatarUrl,
-                                 location,
+                                 userData,
                                  content,
                                  contentType,
                                  mediaUrls,
@@ -35,17 +23,17 @@ export default function Post({
                 <View style={styles.header}>
                     <Image
                         source={
-                            avatarUrl
-                                ? { uri: avatarUrl }
+                            userData.avatarUrl
+                                ? { uri: userData.avatarUrl }
                                 : require('@/assets/images/default-avatar.png')
                         }
                         style={styles.avatar}
                     />
                     <View style={styles.authorInfo}>
-                        <Text style={styles.displayName}>{authorDisplayName}</Text>
-                        <Text style={styles.username}>@{authorUsername}</Text>
+                        <Text style={styles.displayName}>{userData.authorDisplayName}</Text>
+                        <Text style={styles.username}>@{userData.authorUsername}</Text>
                     </View>
-                    <Text style={styles.rightItem}>{location} away</Text>
+                    <Text style={styles.rightItem}>{userData.location} away</Text>
                 </View>
 
                 {/* Post content */}
@@ -66,13 +54,13 @@ export default function Post({
                     style={styles.actionButton}
                     onPress={() => alert('Like pressed')}
                 >
-                    <Text style={styles.actionText}>❤️ Like</Text>
+                    <Text style={styles.actionText}>❤️</Text>
                 </Pressable>
                 <Pressable
                     style={styles.actionButton}
-                    onPress={() => alert('Star pressed')}
+                    onPress={() => alert('Share pressed')}
                 >
-                    <Text style={styles.actionText}>⭐ Star</Text>
+                    <Text style={styles.actionText}>⭐</Text>
                 </Pressable>
             </View>
         </View>
