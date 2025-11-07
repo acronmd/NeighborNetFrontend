@@ -1,9 +1,6 @@
-import {Text, View} from "react-native";
+import React from "react";
+import Profile from "@/app/feed/Profile";
 
-export default function FeedScreen() {
-    return (
-        <View style={{ padding: 16 }}>
-            <Text>Form goes here...</Text>
-        </View>
-    );
+export default function UserProfileScreen() {
+    return <Profile userId={1} />; // fixed user ID
 }

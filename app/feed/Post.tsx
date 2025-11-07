@@ -16,11 +16,9 @@ export default function Post({
 
     return (
         <View style={styles.container}>
-            <Pressable
-                onPress={() => router.push(`/feed/${id}`)}
-            >
-                {/* Header */}
-                <View style={styles.header}>
+            {/* Post header */}
+            <View style={styles.header}>
+                <Pressable onPress={() => router.push(`/users/${userData.id}`)}>
                     <Image
                         source={
                             userData.avatarUrl
@@ -29,19 +27,22 @@ export default function Post({
                         }
                         style={styles.avatar}
                     />
-                    <View style={styles.authorInfo}>
-                        <Text style={styles.displayName}>{userData.authorDisplayName}</Text>
-                        <Text style={styles.username}>@{userData.authorUsername}</Text>
-                    </View>
-                    <Text style={styles.rightItem}>{userData.location} away</Text>
+                </Pressable>
+
+                <View style={styles.authorInfo}>
+                    <Text style={styles.displayName}>{userData.authorDisplayName}</Text>
+                    <Text style={styles.username}>@{userData.authorUsername}</Text>
                 </View>
 
-                {/* Post content */}
-                <Text style={styles.content}>{content}</Text>
+                <Text style={styles.rightItem}>{userData.location} away</Text>
+            </View>
 
-                {/* Separator line */}
+            {/* Post content pressable for post details */}
+            <Pressable onPress={() => router.push(`/feed/${id}`)}>
+                <Text style={styles.content}>{content}</Text>
                 <View style={styles.separator} />
             </Pressable>
+
             {/* Action buttons */}
             <View style={styles.actions}>
                 <Pressable
@@ -70,24 +71,31 @@ export default function Post({
 const styles = StyleSheet.create({
     container: {
         padding: 16,
-        borderBottomWidth: 1,
-        borderColor: '#e1e8ed',
-        backgroundColor: '#fff',
+        marginVertical: 8,
+        marginHorizontal: 12,
+        borderRadius: 12,            // rounded corners
+        backgroundColor: '#fff',     // white card
+        shadowColor: '#000',         // subtle shadow for iOS
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,                // shadow for Android
     },
     header: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 8,
+        alignItems: 'center',        // vertical center with avatar
+        marginBottom: 12,
     },
     avatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 50,
+        height: 50,
+        borderRadius: 25,
         marginRight: 12,
         backgroundColor: '#ccc',
     },
     authorInfo: {
         flexDirection: 'column',
+        justifyContent: 'center',
     },
     displayName: {
         fontWeight: 'bold',
@@ -105,7 +113,7 @@ const styles = StyleSheet.create({
     content: {
         fontSize: 15,
         lineHeight: 20,
-        marginBottom: 8,
+        marginBottom: 12,
     },
     separator: {
         height: 1,
@@ -117,11 +125,14 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
     },
     actionButton: {
-        paddingVertical: 4,
-        paddingHorizontal: 8,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        backgroundColor: '#f1f1f1', // subtle background for buttons
     },
     actionText: {
         color: '#1DA1F2',
         fontWeight: '600',
     },
 });
+
