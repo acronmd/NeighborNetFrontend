@@ -44,13 +44,13 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
         2: {
             id: 2,
             userData: masterUsers[2],
-            content: 'React Native is so cool!!',
+            content: 'Isn\'t our neighborhood so cool!!',
             contentType: 'text',
             comments: [
                 {
                     id: 0,
                     userData: masterUsers[1],
-                    text: "I agree! Isn't it so cool?"
+                    text: "I agree! It really is great!"
                 },
                 {
                     id: 1,
@@ -63,10 +63,24 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
         3: {
             id: 3,
             userData: masterUsers[2],
-            content: 'Ugghh I hate it!',
+            content: 'Ugghh I hate when the subway is delayed!',
             contentType: 'text',
             comments: [],
             likes: 2
+        },
+        4: {
+            id: 4,
+            userData: masterUsers[0],
+            content: 'Welcome everybody!',
+            contentType: 'text',
+            comments: [
+                {
+                id: 0,
+                userData: masterUsers[1],
+                text: "Hello!! :P"
+                }
+            ],
+            likes: 5
         },
     });
 

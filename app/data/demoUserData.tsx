@@ -40,7 +40,7 @@ export type CommentType = {
 
 export const masterUsers: UserType[] = [
     {
-        id: 1,
+        id: 0,
         authorDisplayName: 'Aidan',
         authorUsername: "aidantx",
         bio: "Local artist who likes videogames.",
@@ -52,7 +52,7 @@ export const masterUsers: UserType[] = [
         postIDs: [0],
     },
     {
-        id: 2,
+        id: 1,
         authorDisplayName: 'Alice',
         authorUsername: "janedoe",
         bio: "Curious developer exploring mobile-first design.",
@@ -64,7 +64,7 @@ export const masterUsers: UserType[] = [
         postIDs: [0]
     },
     {
-        id: 3,
+        id: 2,
         authorDisplayName: 'Bob',
         authorUsername: "johndoe",
         bio: "Engineer passionate about clean code and community tools.",

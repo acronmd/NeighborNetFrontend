@@ -33,7 +33,7 @@ export default function Profile({ userId: propUserId }: ProfileProps) {
         (post) => post.userData.id === user.id
     );
 
-    const currentUserId = 1; // Example — replace with your auth context
+    const currentUserId = 0; // Example — replace with your auth context
     const isSelf = String(currentUserId) === String(user.id);
 
     // Save edits — only updates local state, does not mutate masterUsers
