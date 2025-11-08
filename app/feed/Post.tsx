@@ -1,8 +1,12 @@
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+
+
+
+import { View, Text, Image, StyleSheet, Pressable, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-
-import { PostType, User } from "@/app/masterPosts/masterPostList";
-
+import { useState } from 'react';
+import { PostType } from "@/app/data/demoPostData";
+import { UserType } from "@/app/data/demoUserData";
+import { usePosts } from '@/app/data/demoPostData';
 
 export default function Post({
                                  id,
@@ -10,21 +14,35 @@ export default function Post({
                                  content,
                                  contentType,
                                  mediaUrls,
-                                 pollOptions
+                                 pollOptions,
                              }: PostType) {
     const router = useRouter();
+    const { posts, addComment, likePost } = usePosts();
+    const post = posts[id];
+
+    const [replyText, setReplyText] = useState('');
+
+    const handleReply = () => {
+        if (!replyText.trim()) return;
+        addComment(String(id), {
+            id: post.comments?.length || 0,
+            userData: {
+                id: 0, // or your current user id
+                authorDisplayName: 'You',
+                authorUsername: 'you',
+            } as UserType,
+            text: replyText,
+        });
+        setReplyText('');
+    };
 
     return (
         <View style={styles.container}>
-            {/* Post header */}
+            {/* Header */}
             <View style={styles.header}>
                 <Pressable onPress={() => router.push(`/users/${userData.id}`)}>
                     <Image
-                        source={
-                            userData.avatarUrl
-                                ? { uri: userData.avatarUrl }
-                                : require('@/assets/images/default-avatar.png')
-                        }
+                        source={userData.avatarUrl ? { uri: userData.avatarUrl } : require('@/assets/images/default-avatar.png')}
                         style={styles.avatar}
                     />
                 </Pressable>
@@ -37,31 +55,44 @@ export default function Post({
                 <Text style={styles.rightItem}>{userData.location} away</Text>
             </View>
 
-            {/* Post content pressable for post details */}
+            {/* Post Content */}
             <Pressable onPress={() => router.push(`/feed/${id}`)}>
                 <Text style={styles.content}>{content}</Text>
                 <View style={styles.separator} />
             </Pressable>
 
-            {/* Action buttons */}
+            {/* Action Buttons */}
             <View style={styles.actions}>
-                <Pressable
-                    style={styles.actionButton}
-                    onPress={() => alert('Reply pressed')}
-                >
-                    <Text style={styles.actionText}>💬 Reply</Text>
+                <Pressable style={styles.actionButton} onPress={handleReply}>
+                    <Text style={styles.actionText}>💬 {post.comments?.length || 0} Comment{post.comments?.length === 1 ? '' : 's'}</Text>
                 </Pressable>
-                <Pressable
-                    style={styles.actionButton}
-                    onPress={() => alert('Like pressed')}
-                >
-                    <Text style={styles.actionText}>❤️</Text>
+                <Pressable style={styles.actionButton}  onPress={(): void => likePost(String(post.id))}>
+                    <Text style={styles.actionText}>❤  {post.likes || 0} Like{post.likes === 1 ? '' : 's'} </Text>
                 </Pressable>
-                <Pressable
-                    style={styles.actionButton}
-                    onPress={() => alert('Share pressed')}
-                >
-                    <Text style={styles.actionText}>⭐</Text>
+            </View>
+
+            {/*/!* Post Stats *!/*/}
+            {/*<Text style={styles.postStats}>*/}
+            {/*    {`${post.comments?.length || 0} Comment${post.comments?.length === 1 ? '' : 's'} • ${post.likes} Like${post.likes === 1 ? '' : 's'}`}*/}
+            {/*</Text>*/}
+
+            {/* Reply Input */}
+            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                <TextInput
+                    value={replyText}
+                    onChangeText={setReplyText}
+                    placeholder="Write a reply..."
+                    style={{
+                        flex: 1,
+                        borderWidth: 1,
+                        borderColor: '#ccc',
+                        borderRadius: 8,
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                    }}
+                />
+                <Pressable onPress={handleReply} style={{ marginLeft: 8, justifyContent: 'center', paddingHorizontal: 8 }}>
+                    <Text style={{ color: '#1DA1F2', fontWeight: '600' }}>Send</Text>
                 </Pressable>
             </View>
         </View>
@@ -133,6 +164,11 @@ const styles = StyleSheet.create({
     actionText: {
         color: '#1DA1F2',
         fontWeight: '600',
+    },
+    postStats: {
+        marginTop: 6,
+        color: '#657786',
+        fontSize: 12,
     },
 });
 

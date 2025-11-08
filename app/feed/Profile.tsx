@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { masterUsers } from '@/app/data/demoDataTS';
+import { masterUsers } from '@/app/data/demoUserData';
 import { usePosts } from '@/app/data/demoPostData';
 
 type ProfileProps = {
