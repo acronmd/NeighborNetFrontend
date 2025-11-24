@@ -1,14 +1,11 @@
 
 
 
-import { View, Text, Image, StyleSheet, Pressable, TextInput, Alert } from 'react-native';
+import { EventPostType, useEvents } from "@/app/data/demoEventData";
+import { UserType } from "@/app/data/demoUserData";
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { PostType } from "@/app/data/demoPostData";
-import { UserType } from "@/app/data/demoUserData";
-import { EventPostType} from "@/app/data/demoEventData";
-import { usePosts } from '@/app/data/demoPostData';
-import { useEvents } from "@/app/data/demoEventData";
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function EventPost({
                                       id,
@@ -20,9 +17,26 @@ export default function EventPost({
                                       attendingNo,
                                       attendingMaxNo,
                                       imageUrl,
+                                      comments,
                                   }: EventPostType) {
     const router = useRouter();
-    const { addRSVP } = useEvents();
+    const { addRSVP, addComment } = useEvents();
+    const [replyText, setReplyText] = useState('');
+
+    const handleReply = () => {
+        if (!replyText.trim()) return;
+        // create a minimal comment object matching demoPostData.CommentType
+        addComment(String(id), {
+            id: (comments?.length ?? 0),
+            userData: {
+                id: 0,
+                authorDisplayName: 'You',
+                authorUsername: 'you',
+            } as UserType,
+            text: replyText.trim(),
+        });
+        setReplyText('');
+    };
 
     return (
         <View style={styles.card}>
@@ -60,6 +74,35 @@ export default function EventPost({
                     >
                         <Text style={styles.rsvpText}>RSVP</Text>
                     </Pressable>
+                </View>
+
+                {/* Comment action + input (based on Post.tsx) */}
+                <View style={{ marginTop: 8 }}>
+                    <Pressable style={styles.actionButton} onPress={handleReply}>
+                        <Text style={styles.actionText}>💬 {comments?.length || 0} Comment{(comments?.length ?? 0) === 1 ? '' : 's'}</Text>
+                    </Pressable>
+
+                    <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                        <TextInput
+                            value={replyText}
+                            onChangeText={setReplyText}
+                            placeholder="Write a reply..."
+                            placeholderTextColor="#9AA0C7"
+                            style={{
+                                flex: 1,
+                                borderWidth: 1,
+                                borderColor: '#ccc',
+                                borderRadius: 8,
+                                paddingHorizontal: 8,
+                                paddingVertical: 6,
+                                color: 'white',
+                                backgroundColor: '#2E3347'
+                            }}
+                        />
+                        <Pressable onPress={handleReply} style={{ marginLeft: 8, justifyContent: 'center', paddingHorizontal: 8 }}>
+                            <Text style={{ color: '#1DA1F2', fontWeight: '600' }}>Send</Text>
+                        </Pressable>
+                    </View>
                 </View>
             </View>
         </View>
