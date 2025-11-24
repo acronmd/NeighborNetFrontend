@@ -63,7 +63,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({children
             id: 4,
             userData: masterUsers[2],
             title: 'Event Four!',
-            overview: "Lorem Ipsum",
+            overview: "This'll be a casual picnic meetup at 16W, Make sure to bring food and drinks if you wanna come! Message me for details",
             location: "16W",
             dateTime: new Date("1995-12-17T03:24:00"),
             attendingNo: 0,

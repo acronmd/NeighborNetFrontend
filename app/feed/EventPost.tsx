@@ -50,7 +50,10 @@ export default function EventPost({
 
                 {/* Buttons */}
                 <View style={styles.buttons}>
-                    <Pressable style={styles.detailsBtn}>
+                    <Pressable
+                        style={styles.detailsBtn}
+                        onPress={() => router.push(`/event/${id}`)}
+                    >
                         <Text style={styles.detailsText}>Details</Text>
                     </Pressable>
 
