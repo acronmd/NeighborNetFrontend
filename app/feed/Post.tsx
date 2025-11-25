@@ -80,7 +80,7 @@ export default function Post({ post }: { post: ApiPost }) {
 
             {/* Actions */}
             <View style={styles.actions}>
-                <Pressable style={styles.actionButton} onPress={handleComment}>
+                <Pressable style={styles.actionButton} onPress={() => router.push(`/feed/${post.post_id}`)}>
                     <Text style={styles.actionText}>💬 {commentsCount} Comments</Text>
                 </Pressable>
 
@@ -89,8 +89,8 @@ export default function Post({ post }: { post: ApiPost }) {
                 </Pressable>
             </View>
 
-            {/* Reply box */}
-            <View style={styles.replyContainer}>
+            {/* Reply box
+             <View style={styles.replyContainer}>
                 <TextInput
                     placeholder="Write a reply..."
                     style={styles.replyInput}
@@ -101,6 +101,8 @@ export default function Post({ post }: { post: ApiPost }) {
                     <Text style={styles.sendButton}>Send</Text>
                 </Pressable>
             </View>
+             */}
+
         </View>
     );
 }
@@ -140,7 +142,7 @@ const styles = StyleSheet.create({
     actions: {
         flexDirection: "row",
         justifyContent: "space-around",
-        marginVertical: 12,
+        marginVertical: 6,
     },
     actionButton: {
         padding: 8,
@@ -170,6 +172,6 @@ const styles = StyleSheet.create({
     separator: {
         height: 1,
         backgroundColor: '#e1e8ed',
-        marginVertical: 8,
+        marginVertical: 4,
     },
 });

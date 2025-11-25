@@ -1,24 +1,34 @@
-import { FlatList } from "react-native";
-// eslint-disable-next-line import/namespace
-import { useEvents } from "@/app/data/demoEventData";
-import Post from "@/app/feed/Post";
+import React from "react";
+import { FlatList, View, Text, ActivityIndicator } from "react-native";
 import EventPost from "@/app/feed/EventPost";
+import { useEvents } from "@/app/data/demoEventData"; // your EventProvider file
 
-export default function PostFeedScreen() {
-    const { events } = useEvents(); // 🔥 get data from context
+export default function EventFeedScreen() {
+    const { events, refreshEvents } = useEvents();
 
-    // Map posts to clone userData to prevent shared mutation
-    const postsWithClonedUsers = Object.values(events).map(eventPost => ({
-        ...eventPost,
-        userData: { ...eventPost.userData },
-    }));
+    if (!events) {
+        return (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <ActivityIndicator size="large" />
+            </View>
+        );
+    }
+
+    if (events.length === 0) {
+        return (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <Text>No events yet.</Text>
+            </View>
+        );
+    }
 
     return (
         <FlatList
-            data={postsWithClonedUsers} // ✅ isolated userData per post
-            keyExtractor={(item) => String(item.id)}
-            renderItem={({ item }) => <EventPost {...item} />}
+            data={events}
+            keyExtractor={(item) => String(item.event_id)}
+            renderItem={({ item }) => <EventPost {...item} id={item.event_id} />}
+            onRefresh={refreshEvents}
+            refreshing={false}
         />
     );
 }
-

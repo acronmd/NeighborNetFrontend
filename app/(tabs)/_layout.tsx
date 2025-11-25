@@ -1,9 +1,10 @@
-import { Tabs } from 'expo-router';
+import {router, Tabs} from 'expo-router';
 import React from 'react';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { TouchableOpacity, Text } from 'react-native';
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
@@ -59,6 +60,20 @@ export default function RootLayout() {
                 options={{
                     title: 'Profile',
                     tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="event-feed" // feed tab
+                options={{
+                    title: 'Events',
+                    headerRight: () => (
+                        <TouchableOpacity
+                            onPress={() => router.push('/event/newEvent')}
+                            style={{ marginRight: 12 }}
+                        >
+                            <Text style={{ fontSize: 28, fontWeight: 'bold' }}>+</Text>
+                        </TouchableOpacity>
+                    ),
                 }}
             />
         </Tabs>
