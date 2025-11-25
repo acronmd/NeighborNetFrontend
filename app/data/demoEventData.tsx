@@ -1,7 +1,13 @@
 import React, { createContext, useContext, useState } from 'react';
 
-import type {UserType} from "./demoUserData"
-import {masterUsers} from "./demoUserData";
+import type { UserType } from "./demoUserData";
+import { masterUsers } from "./demoUserData";
+
+export type CommentType = {
+    id: number;
+    userData: UserType;
+    text: string;
+};
 
 export type EventPostType = {
     id: number;
@@ -13,6 +19,7 @@ export type EventPostType = {
     attendingNo: number;
     attendingMaxNo: number;
     imageUrl: string;
+    comments?: CommentType[];
 }
 
 
@@ -22,6 +29,7 @@ type EventPostContextType = {
     events: Record<string, EventPostType>;
     addEvent: (event: Omit<EventPostType, 'id'>) => void;
     addRSVP: (eventPostID: string) => void;
+    addComment: (eventId: string, comment: CommentType) => void;
 };
 
 export const EventProvider: React.FC<{ children: React.ReactNode }> = ({children}) => {
@@ -36,6 +44,8 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({children
             attendingNo: 0,
             attendingMaxNo: 20,
             imageUrl: "https://copyparty.acrn.me/other%20files/NeighborNetCDN/events/pumpkin.png"
+            ,
+            comments: []
         },
         2: {
             id: 2,
@@ -47,6 +57,8 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({children
             attendingNo: 0,
             attendingMaxNo: 20,
             imageUrl: "https://copyparty.acrn.me/other%20files/NeighborNetCDN/events/pumpkin.png"
+            ,
+            comments: []
         },
         3: {
             id: 3,
@@ -58,6 +70,8 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({children
             attendingNo: 0,
             attendingMaxNo: 20,
             imageUrl: "https://copyparty.acrn.me/other%20files/NeighborNetCDN/events/pumpkin.png"
+            ,
+            comments: []
         },
         4: {
             id: 4,
@@ -69,6 +83,8 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({children
             attendingNo: 0,
             attendingMaxNo: 20,
             imageUrl: "https://copyparty.acrn.me/other%20files/NeighborNetCDN/events/pumpkin.png"
+            ,
+            comments: []
         },
     });
 
@@ -90,8 +106,18 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({children
         }));
     };
 
+    const addComment = (eventId: string, comment: CommentType) => {
+        setEvents(prev => ({
+            ...prev,
+            [eventId]: {
+                ...prev[eventId],
+                comments: [...(prev[eventId].comments || []), comment],
+            },
+        }));
+    };
+
     return (
-        <EventPostContext.Provider value={{ events, addEvent, addRSVP }}>
+        <EventPostContext.Provider value={{ events, addEvent, addRSVP, addComment }}>
             {children}
         </EventPostContext.Provider>
     );
