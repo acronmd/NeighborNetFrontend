@@ -11,6 +11,7 @@ type EventPostProps = EventType & {
 
 export default function EventPost({
                                       title,
+                                      event_id,
                                       post_id,
                                       description,
                                       location,
@@ -66,10 +67,11 @@ export default function EventPost({
                 <View style={styles.buttons}>
                     <Pressable
                         style={styles.detailsBtn}
-                        onPress={() => router.push(`/event/${organizer_id}`)}
+                        onPress={() => router.push(`/event/${event_id}`)}
                     >
                         <Text style={styles.detailsText}>Details</Text>
                     </Pressable>
+
                 </View>
 
             </View>

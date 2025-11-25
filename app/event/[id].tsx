@@ -1,7 +1,9 @@
 import { View, Text, Image, StyleSheet, Pressable, BackHandler } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect } from "react";
-import { useEvents } from "@/app/data/demoEventData";
+import { useEffect, useState } from "react";
+import { useEvents, EventType } from "@/app/data/demoEventData";
+import { api } from "@/app/lib/api";
+import React from "react";
 
 export default function EventDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -9,7 +11,9 @@ export default function EventDetailScreen() {
     const { events, addRSVP } = useEvents();
 
     const eventId = Number(id);
-    const event = Object.values(events).find(e => e.id === eventId);
+    const event = events.find((e: EventType & { event_id: number }) => e.event_id === eventId);
+
+    const [authorName, setAuthorName] = useState<string | null>(null);
 
     useEffect(() => {
         const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -19,70 +23,59 @@ export default function EventDetailScreen() {
         return () => sub.remove();
     }, []);
 
+    useEffect(() => {
+        if (!event) return;
+        const fetchPost = async () => {
+            try {
+                const data = await api(`/api/posts/${event.post_id}`);
+                if (data.success && data.post) {
+                    setAuthorName(data.post.author_name);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchPost();
+    }, [event]);
+
     if (!event) {
         return (
-            <View>
-                <Text>Event not found.</Text>
+            <View style={styles.centered}>
+                <Text style={{ color: "white" }}>Event not found.</Text>
             </View>
         );
     }
 
+    const dateObj = new Date(event.event_date);
+
     return (
         <View style={styles.backgroundContainer}>
             <View style={styles.card}>
-                {/* HEADER
-                    <View style={styles.header}>
-                        <Pressable onPress={() => router.push(`/users/${event.userData.id}`)}>
-                            <Image
-                                source={
-                                    event.userData.avatarUrl
-                                        ? { uri: event.userData.avatarUrl }
-                                        : require("@/assets/images/default-avatar.png")
-                                }
-                                style={styles.avatar}
-                            />
-                        </Pressable>
-
-                        <View>
-                            <Text style={styles.displayName}>{event.userData.authorDisplayName}</Text>
-                            <Text style={styles.username}>@{event.userData.authorUsername}</Text>
-                        </View>
-                    </View>
-                */}
-
-                {/* EVENT IMAGE */}
-                <View style={styles.imageBox}>
-                    <Image
-                        source={
-                            event.imageUrl
-                                ? { uri: event.imageUrl }
-                                : require("@/assets/images/default-avatar.png")
-                        }
-                        style={styles.image}
-                    />
-                </View>
-
                 {/* EVENT INFO */}
                 <Text style={styles.title}>{event.title}</Text>
-                <Pressable onPress={() => router.push(`/users/${event.userData.id}`)}>
-                    <Text style={styles.host}>Hosted by @{event.userData.authorUsername}</Text>
-                </Pressable>
+                {authorName && (
+                    <Pressable onPress={() => router.push(`/users/${event.organizer_id}`)}>
+                        <Text style={styles.host}>Hosted by {authorName} (@userID{event.organizer_id})</Text>
+                    </Pressable>
+                )}
 
-                <Text style={styles.overview}>{event.overview}</Text>
+                <Text style={styles.overview}>{event.description}</Text>
 
-                <Text style={styles.location}>{event.location}</Text>
-                <Text style={styles.date}>{event.dateTime.toString()}</Text>
+                {event.location && <Text style={styles.location}>{event.location}</Text>}
+                <Text style={styles.date}>
+                    {dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString()}
+                </Text>
 
                 {/* ATTENDING */}
                 <Text style={styles.attending}>
-                    👥 {event.attendingNo} / {event.attendingMaxNo}
+                    👥 {event.current_attendees ?? 0} / {event.max_attendees ?? '—'}
                 </Text>
 
                 {/* BUTTONS */}
                 <View style={styles.buttons}>
                     <Pressable
                         style={styles.rsvpBtn}
-                        onPress={() => addRSVP(String(event.id))}
+                        onPress={() => addRSVP(String(event.event_id))}
                     >
                         <Text style={styles.rsvpText}>RSVP</Text>
                     </Pressable>
@@ -93,28 +86,9 @@ export default function EventDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-    card: {
-        padding: 20,
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 20,
-    },
-    avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginRight: 12,
-    },
-    displayName: {
-        fontWeight: "700",
-        fontSize: 18,
-        color: "white",
-    },
-    username: {
-        color: "#B8BED0",
-    },
+    backgroundContainer: { flex: 1, backgroundColor: "#2E3347" },
+    card: { padding: 20 },
+    centered: { flex: 1, justifyContent: "center", alignItems: "center" },
     imageBox: {
         width: "100%",
         height: 200,
@@ -125,72 +99,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
         overflow: "hidden",
     },
-    image: {
-        width: "100%",
-        height: "100%",
-        resizeMode: "cover",
-    },
-    title: {
-        fontSize: 26,
-        fontWeight: "700",
-        color: "white",
-        marginTop: 16,
-    },
-    host: {
-        color: "#B8BED0",
-        marginBottom: 10,
-    },
-    location: {
-        fontSize: 15,
-        color: "white",
-    },
-    date: {
-        fontSize: 15,
-        color: "#B8BED0",
-    },
-    attending: {
-        marginTop: 16,
-        fontSize: 16,
-        color: "#B8BED0",
-        fontWeight: "600",
-        textAlign: "center",
-    },
-    buttons: {
-        flexDirection: "row",
-        marginTop: 20,
-        justifyContent: "space-between",
-    },
-    detailsBtn: {
-        flex: 1,
-        marginRight: 10,
-        paddingVertical: 12,
-        borderRadius: 30,
-        backgroundColor: "#2E3347",
-        alignItems: "center",
-    },
-    detailsText: {
-        color: "white",
-        fontWeight: "600",
-    },
-    rsvpBtn: {
-        flex: 1,
-        marginLeft: 10,
-        paddingVertical: 12,
-        borderRadius: 30,
-        backgroundColor: "white",
-        alignItems: "center",
-    },
-    rsvpText: {
-        color: "#2E3347",
-        fontWeight: "700",
-    },
-    backgroundContainer: {
-        flex: 1,
-        backgroundColor: "#2E3347",
-    },
-    overview: {
-        fontSize: 18,
-        color: "white",
-        marginBottom: 15,
-    },
+    image: { width: "100%", height: "100%", resizeMode: "cover" },
+    title: { fontSize: 26, fontWeight: "700", color: "white", marginTop: 16 },
+    host: { color: "#B8BED0", marginBottom: 10 },
+    overview: { fontSize: 18, color: "white", marginBottom: 15 },
+    location: { fontSize: 15, color: "white" },
+    date: { fontSize: 15, color: "#B8BED0" },
+    attending: { marginTop: 16, fontSize: 16, color: "#B8BED0", fontWeight: "600", textAlign: "center" },
+    buttons: { flexDirection: "row", marginTop: 20, justifyContent: "space-between" },
+    rsvpBtn: { flex: 1, paddingVertical: 12, borderRadius: 30, backgroundColor: "white", alignItems: "center" },
+    rsvpText: { color: "#2E3347", fontWeight: "700" },
 });
