@@ -67,13 +67,16 @@ export default function Post({ post }: { post: ApiPost }) {
                 </Pressable>
 
                 <View>
-                    <Text style={styles.displayName}>User #{post.user_id}</Text>
-                    <Text style={styles.username}>@user{post.user_id}</Text>
+                    <Text style={styles.displayName}>{post.author_name}</Text>
+                    <Text style={styles.username}>@userID{post.user_id}</Text>
                 </View>
             </View>
 
             {/* Content */}
-            <Text style={styles.content}>{post.content}</Text>
+            <Pressable onPress={() => router.push(`/feed/${post.post_id}`)}>
+                <Text style={styles.content}>{post.content}</Text>
+                <View style={styles.separator} />
+            </Pressable>
 
             {/* Actions */}
             <View style={styles.actions}>
@@ -163,5 +166,10 @@ const styles = StyleSheet.create({
         color: "#1DA1F2",
         fontWeight: "600",
         alignSelf: "center",
+    },
+    separator: {
+        height: 1,
+        backgroundColor: '#e1e8ed',
+        marginVertical: 8,
     },
 });

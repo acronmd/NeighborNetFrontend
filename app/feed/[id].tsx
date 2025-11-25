@@ -1,43 +1,17 @@
-import {View, Text, Image, FlatList, StyleSheet, BackHandler, Pressable, TextInput} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import {useEffect, useState} from 'react';
-import { usePosts, CommentType, PostType } from '@/app/data/demoPostData';
-import {UserType} from "@/app/data/demoUserData";
+import { View, Text, Image, Pressable, TextInput, ActivityIndicator, StyleSheet } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import { useApiPost } from "@/app/hooks/useApiPost";
+import React from "react";
 
 export default function PostDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { posts, likePost, addComment } = usePosts();
-
-    const [replyText, setReplyText] = useState('');
-
     const postId = Number(id);
-    const post = Object.values(posts).find(p => p.id === postId);
+    const { post, loading } = useApiPost(postId);
+    const [replyText, setReplyText] = useState("");
 
-    const handleReply = () => {
-        if (!replyText.trim()) return;
-        // @ts-ignore
-        addComment(String(id), {
-            id: post.comments?.length || 0,
-            userData: {
-                id: 0, // or your current user id
-                authorDisplayName: 'You',
-                authorUsername: 'you',
-            } as UserType,
-            text: replyText,
-        });
-        setReplyText('');
-    };
-
-    // Handle Android hardware back button
-    useEffect(() => {
-        const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-            router.back();
-            return true;
-        });
-
-        return () => subscription.remove();
-    }, [router]);
+    if (loading) return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
 
     if (!post) {
         return (
@@ -49,13 +23,13 @@ export default function PostDetailScreen() {
 
     return (
         <View style={styles.postCard}>
-            {/* Post header */}
+            {/* Header */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.push(`/users/${post.userData.id}`)}>
+                <Pressable onPress={() => router.push(`/users/${post.user_id}`)}>
                     <Image
                         source={
-                            post.userData.avatarUrl
-                                ? { uri: post.userData.avatarUrl }
+                            post.author_image
+                                ? { uri: post.author_image }
                                 : require('@/assets/images/default-avatar.png')
                         }
                         style={styles.avatar}
@@ -63,23 +37,23 @@ export default function PostDetailScreen() {
                 </Pressable>
 
                 <View style={styles.authorInfo}>
-                    <Text style={styles.displayName}>{post.userData.authorDisplayName}</Text>
-                    <Text style={styles.username}>@{post.userData.authorUsername}</Text>
+                    <Text style={styles.displayName}>{post.author_name}</Text>
+                    <Text style={styles.username}>@userID{post.user_id}</Text>
                 </View>
 
-                <Text style={styles.rightItem}>{post.userData.location} away</Text>
+                <Text style={styles.rightItem}>{post.location_lat} away</Text>
             </View>
 
-            {/* Post content */}
+            {/* Content */}
             <Text style={styles.content}>{post.content}</Text>
 
             {/* Post actions */}
             <View style={styles.actions}>
                 <Pressable style={styles.actionButton}>
-                    <Text style={styles.actionText}>💬 {post.comments?.length || 0} Comment{post.comments?.length === 1 ? '' : 's'}</Text>
+                    <Text style={styles.actionText}>💬 {post.comments_count || 0} Comment{post.comments_count === 1 ? '' : 's'}</Text>
                 </Pressable>
-                <Pressable style={styles.actionButton}  onPress={(): void => likePost(String(post.id))}>
-                    <Text style={styles.actionText}>❤  {post.likes || 0} Like{post.likes === 1 ? '' : 's'} </Text>
+                <Pressable style={styles.actionButton}>
+                    <Text style={styles.actionText}>❤  {post.likes_count || 0} Like{post.likes_count === 1 ? '' : 's'} </Text>
                 </Pressable>
             </View>
             {/* Reply Input */}
@@ -97,21 +71,16 @@ export default function PostDetailScreen() {
                         paddingVertical: 4,
                     }}
                 />
-                <Pressable onPress={handleReply} style={{ marginLeft: 8, justifyContent: 'center', paddingHorizontal: 8 }}>
+                <Pressable style={{ marginLeft: 8, justifyContent: 'center', paddingHorizontal: 8 }}>
                     <Text style={{ color: '#1DA1F2', fontWeight: '600' }}>Send</Text>
                 </Pressable>
             </View>
 
-            {/*/!* Post stats *!/*/}
-            {/*<Text style={styles.postStats}>*/}
-            {/*    {`${post.comments?.length || 0} Comment${post.comments?.length === 1 ? '' : 's'} • ${post.likes || 0} Like${post.likes === 1 ? '' : 's'}`}*/}
-            {/*</Text>*/}
-
             {/* Separator */}
             <View style={styles.separator} />
 
-            {/* Comments */}
-            {post.comments && post.comments.length > 0 ? (
+            {/* Comments
+             {post.comments && post.comments.length > 0 ? (
                 post.comments.map((comment) => (
                     <View key={comment.id} style={styles.comment}>
                         <Pressable onPress={() => router.push(`/users/${comment.userData.id}`)}>
@@ -119,7 +88,7 @@ export default function PostDetailScreen() {
                                 source={
                                     comment.userData.avatarUrl
                                         ? { uri: comment.userData.avatarUrl }
-                                        : require('@/assets/images/default-avatar.png')
+                                        : require('@/assets/images/favicon.png')
                                 }
                                 style={styles.commentAvatar}
                             />
@@ -133,9 +102,25 @@ export default function PostDetailScreen() {
             ) : (
                 <Text style={{ marginVertical: 8, color: '#657786' }}>No comments</Text>
             )}
+             */}
+
         </View>
     );
+
 }
+
+/*
+const styles = StyleSheet.create({
+    container: { flex: 1, padding: 16, backgroundColor: "#f5f8fa" },
+    postCard: { padding: 16, borderRadius: 12, backgroundColor: "#fff", marginVertical: 8, marginHorizontal: 12 },
+    header: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+    avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12, backgroundColor: "#ccc" },
+    authorInfo: { flexDirection: "column", justifyContent: "center" },
+    displayName: { fontWeight: "bold", fontSize: 16 },
+    username: { color: "#657786", fontSize: 14 },
+    content: { fontSize: 15, lineHeight: 20 },
+});
+ */
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 16, backgroundColor: '#f5f8fa' },
@@ -192,4 +177,3 @@ const styles = StyleSheet.create({
     },
 
 });
-

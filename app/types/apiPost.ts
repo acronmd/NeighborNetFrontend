@@ -15,4 +15,7 @@ export type ApiPost = {
     status: "active" | "archived" | "reported" | "removed";
     created_at: string;
     updated_at: string;
+    author_name: string;
+    author_image: string | null;
 };
+

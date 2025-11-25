@@ -1,97 +1,115 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { masterUsers } from '@/app/data/demoUserData';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { usePosts } from '@/app/data/demoPostData';
+import { useRouter } from 'expo-router';
 
-type ProfileProps = {
-    userId?: number | string; // optional — if not provided, use local search params
+type ApiUser = {
+    user_id: number;
+    email: string;
+    name: string;
+    bio?: string | null;
+    street?: string | null;
+    verification_status: string;
+    profile_visibility: string;
+    is_moderator: boolean | number;
+    created_at: string;
 };
 
-export default function Profile({ userId: propUserId }: ProfileProps) {
+export default function Profile() {
     const router = useRouter();
-    const { userId: paramUserId } = useLocalSearchParams();
     const { posts } = usePosts();
 
-    // Decide which userId to use
-    const idToUse = propUserId ?? paramUserId;
+    const [user, setUser] = useState<ApiUser | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Find this user from masterUsers
-    const user = masterUsers.find((u) => String(u.id) === String(idToUse));
-    if (!user) return (
-        <View style={styles.center}><Text>User not found.</Text></View>
-    );
-
-    // Local editable state — independent per profile instance
     const [isEditing, setEditing] = useState(false);
-    const [bio, setBio] = useState(user.bio || '');
-    const [interests, setInterests] = useState(user.interests?.join(', ') || '');
-    const [skills, setSkills] = useState(user.skills?.join(', ') || '');
+    const [bio, setBio] = useState('');
 
-    // Filter posts from context by this user's ID
-    const userPosts = Object.values(posts).filter(
-        (post) => post.userData.id === user.id
-    );
+    // Fetch current user
+    useEffect(() => {
+        async function fetchUser() {
+            try {
+                const token = await SecureStore.getItemAsync('authToken');
+                const ip = await SecureStore.getItemAsync('serverIp');
+                const res = await fetch(`http://${ip}/api/users/profile`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setUser(data.user);
+                    setBio(data.user.bio ?? '');
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchUser();
+    }, []);
 
-    const currentUserId = 0; // Example — replace with your auth context
-    const isSelf = String(currentUserId) === String(user.id);
+    if (loading) return <View style={styles.center}><ActivityIndicator size="large" /></View>;
+    if (!user) return <View style={styles.center}><Text>User not found.</Text></View>;
 
-    // Save edits — only updates local state, does not mutate masterUsers
-    function saveEdits() {
-        setBio(bio);
-        setInterests(interests.split(',').map((s) => s.trim()).filter(Boolean).join(', '));
-        setSkills(skills.split(',').map((s) => s.trim()).filter(Boolean).join(', '));
-        setEditing(false);
+    const userPosts = Object.values(posts).filter(p => p.user_id === user.user_id);
+
+    const currentUserId = user.user_id; // same as fetched user
+    const isSelf = true;
+
+    async function saveEdits() {
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const ip = await SecureStore.getItemAsync("serverIp");
+
+            const res = await fetch(`http://${ip}/api/users/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    bio,          // only sending bio since it's the only editable state
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                // Update local state to reflect saved edits
+                setUser((prev) => prev ? { ...prev, bio } : prev);
+                setEditing(false);
+            } else {
+                console.error('Failed to update profile', data);
+                alert('Failed to update profile');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('An error occurred while updating your profile');
+        }
     }
+
 
     return (
         <ScrollView style={styles.container}>
-            {/* Header */}
             <View style={styles.headerCenter}>
                 <View style={styles.avatar}>
-                    <Text style={styles.avatarLetter}>{user.authorDisplayName[0]}</Text>
+                    <Text style={styles.avatarLetter}>{user.name[0]}</Text>
                 </View>
-                <Text style={styles.name}>{user.authorDisplayName}</Text>
-                <Text style={styles.handle}>@{user.authorUsername}</Text>
-                {user.location && <Text style={styles.location}>{user.location}</Text>}
+                <Text style={styles.name}>{user.name}</Text>
+                <Text style={styles.handle}>@user{user.user_id}</Text>
+                {user.street && <Text style={styles.location}>{user.street}</Text>}
             </View>
 
-            {/* Bio */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Bio</Text>
-                {isEditing && isSelf ? (
+                {isEditing ? (
                     <TextInput value={bio} onChangeText={setBio} style={styles.input} multiline />
                 ) : (
                     <Text>{bio}</Text>
                 )}
             </View>
 
-            {/* Interests */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Interests</Text>
-                {isEditing && isSelf ? (
-                    <TextInput
-                        value={interests}
-                        onChangeText={setInterests}
-                        style={styles.input}
-                        multiline
-                    />
-                ) : (
-                    <Text>{interests}</Text>
-                )}
-            </View>
-
-            {/* Skills */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Skills</Text>
-                {isEditing && isSelf ? (
-                    <TextInput value={skills} onChangeText={setSkills} style={styles.input} multiline />
-                ) : (
-                    <Text>{skills}</Text>
-                )}
-            </View>
-
-            {/* Edit/Save buttons */}
             {isSelf && (
                 <View style={styles.section}>
                     {isEditing ? (
@@ -106,15 +124,12 @@ export default function Profile({ userId: propUserId }: ProfileProps) {
                 </View>
             )}
 
-            {/* Posts */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Posts</Text>
                 {userPosts.length > 0 ? (
-                    userPosts.map((p) => (
-                        <TouchableOpacity key={p.id} onPress={() => router.push(`/feed/${p.id}`)}>
-                            <Text style={styles.postTitle}>
-                                {p.content.length > 80 ? p.content.slice(0, 80) + '…' : p.content}
-                            </Text>
+                    userPosts.map(p => (
+                        <TouchableOpacity key={p.post_id} onPress={() => router.push(`/feed/${p.post_id}`)}>
+                            <Text style={styles.postTitle}>{p.content.length > 80 ? p.content.slice(0, 80) + '…' : p.content}</Text>
                         </TouchableOpacity>
                     ))
                 ) : (
@@ -128,28 +143,14 @@ export default function Profile({ userId: propUserId }: ProfileProps) {
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 10 },
     headerCenter: { alignItems: 'center', marginBottom: 20 },
-    avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#ddd',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
+    avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
     avatarLetter: { fontSize: 32, fontWeight: 'bold' },
     name: { fontSize: 20, fontWeight: 'bold' },
     handle: { color: '#555' },
     location: { color: '#888', marginTop: 4 },
     section: { marginBottom: 20 },
     sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 4,
-        padding: 10,
-        backgroundColor: '#fff',
-    },
+    input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 10, backgroundColor: '#fff' },
     editBtn: { backgroundColor: '#007bff', padding: 10, borderRadius: 4 },
     editText: { color: '#fff', textAlign: 'center' },
     saveBtn: { backgroundColor: '#28a745', padding: 10, borderRadius: 4 },
