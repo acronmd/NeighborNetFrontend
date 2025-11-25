@@ -1,98 +1,101 @@
+import React, { useState } from "react";
+import { View, Text, Image, StyleSheet, Pressable, TextInput, Alert } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import { ApiPost } from "../types/apiPost";
+import { useRouter } from "expo-router";
 
-
-
-import { View, Text, Image, StyleSheet, Pressable, TextInput, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { PostType } from "@/app/data/demoPostData";
-import { UserType } from "@/app/data/demoUserData";
-import { usePosts } from '@/app/data/demoPostData';
-
-export default function Post({
-                                 id,
-                                 userData,
-                                 content,
-                                 contentType,
-                                 mediaUrls,
-                                 pollOptions,
-                             }: PostType) {
+export default function Post({ post }: { post: ApiPost }) {
     const router = useRouter();
-    const { posts, addComment, likePost } = usePosts();
-    const post = posts[id];
 
-    const [replyText, setReplyText] = useState('');
+    const [likes, setLikes] = useState(post.likes_count);
+    const [commentsCount, setCommentsCount] = useState(post.comments_count);
+    const [replyText, setReplyText] = useState("");
 
-    const handleReply = () => {
-        if (!replyText.trim()) return;
-        addComment(String(id), {
-            id: post.comments?.length || 0,
-            userData: {
-                id: 0, // or your current user id
-                authorDisplayName: 'You',
-                authorUsername: 'you',
-            } as UserType,
-            text: replyText,
+    // --- LIKE POST ---
+    const handleLike = async () => {
+        const token = await SecureStore.getItemAsync("authToken");
+        const ip = await SecureStore.getItemAsync("serverIp");
+
+        const res = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
         });
-        setReplyText('');
+
+        if (res.ok) {
+            setLikes((prev) => prev + 1);
+        } else {
+            Alert.alert("Failed to like post");
+        }
+    };
+
+    // --- COMMENT ---
+    const handleComment = async () => {
+        if (!replyText.trim()) return;
+
+        const token = await SecureStore.getItemAsync("authToken");
+        const ip = await SecureStore.getItemAsync("serverIp");
+
+        const res = await fetch(`http://${ip}/api/posts/${post.post_id}/comment`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ text: replyText }),
+        });
+
+        if (res.ok) {
+            setReplyText("");
+            setCommentsCount((prev) => prev + 1);
+        } else {
+            Alert.alert("Failed to comment");
+        }
     };
 
     return (
         <View style={styles.container}>
+
             {/* Header */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.push(`/users/${userData.id}`)}>
+                <Pressable>
+
+                    {/* TEMP USER INFO — until backend returns joined user data */}
                     <Image
-                        source={userData.avatarUrl ? { uri: userData.avatarUrl } : require('@/assets/images/default-avatar.png')}
+                        source={require("@/assets/images/default-avatar.png")}
                         style={styles.avatar}
                     />
                 </Pressable>
 
-                <View style={styles.authorInfo}>
-                    <Text style={styles.displayName}>{userData.authorDisplayName}</Text>
-                    <Text style={styles.username}>@{userData.authorUsername}</Text>
+                <View>
+                    <Text style={styles.displayName}>User #{post.user_id}</Text>
+                    <Text style={styles.username}>@user{post.user_id}</Text>
                 </View>
-
-                <Text style={styles.rightItem}>{userData.location} away</Text>
             </View>
 
-            {/* Post Content */}
-            <Pressable onPress={() => router.push(`/feed/${id}`)}>
-                <Text style={styles.content}>{content}</Text>
-                <View style={styles.separator} />
-            </Pressable>
+            {/* Content */}
+            <Text style={styles.content}>{post.content}</Text>
 
-            {/* Action Buttons */}
+            {/* Actions */}
             <View style={styles.actions}>
-                <Pressable style={styles.actionButton} onPress={handleReply}>
-                    <Text style={styles.actionText}>💬 {post.comments?.length || 0} Comment{post.comments?.length === 1 ? '' : 's'}</Text>
+                <Pressable style={styles.actionButton} onPress={handleComment}>
+                    <Text style={styles.actionText}>💬 {commentsCount} Comments</Text>
                 </Pressable>
-                <Pressable style={styles.actionButton}  onPress={(): void => likePost(String(post.id))}>
-                    <Text style={styles.actionText}>❤  {post.likes || 0} Like{post.likes === 1 ? '' : 's'} </Text>
+
+                <Pressable style={styles.actionButton} onPress={handleLike}>
+                    <Text style={styles.actionText}>❤️ {likes} Likes</Text>
                 </Pressable>
             </View>
 
-            {/*/!* Post Stats *!/*/}
-            {/*<Text style={styles.postStats}>*/}
-            {/*    {`${post.comments?.length || 0} Comment${post.comments?.length === 1 ? '' : 's'} • ${post.likes} Like${post.likes === 1 ? '' : 's'}`}*/}
-            {/*</Text>*/}
-
-            {/* Reply Input */}
-            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+            {/* Reply box */}
+            <View style={styles.replyContainer}>
                 <TextInput
+                    placeholder="Write a reply..."
+                    style={styles.replyInput}
                     value={replyText}
                     onChangeText={setReplyText}
-                    placeholder="Write a reply..."
-                    style={{
-                        flex: 1,
-                        borderWidth: 1,
-                        borderColor: '#ccc',
-                        borderRadius: 8,
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                    }}
                 />
-                <Pressable onPress={handleReply} style={{ marginLeft: 8, justifyContent: 'center', paddingHorizontal: 8 }}>
-                    <Text style={{ color: '#1DA1F2', fontWeight: '600' }}>Send</Text>
+                <Pressable onPress={handleComment}>
+                    <Text style={styles.sendButton}>Send</Text>
                 </Pressable>
             </View>
         </View>
@@ -102,19 +105,15 @@ export default function Post({
 const styles = StyleSheet.create({
     container: {
         padding: 16,
-        marginVertical: 8,
+        backgroundColor: "#fff",
+        marginVertical: 10,
         marginHorizontal: 12,
-        borderRadius: 12,            // rounded corners
-        backgroundColor: '#fff',     // white card
-        shadowColor: '#000',         // subtle shadow for iOS
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,                // shadow for Android
+        borderRadius: 12,
+        elevation: 3,
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',        // vertical center with avatar
+        flexDirection: "row",
+        alignItems: "center",
         marginBottom: 12,
     },
     avatar: {
@@ -122,53 +121,47 @@ const styles = StyleSheet.create({
         height: 50,
         borderRadius: 25,
         marginRight: 12,
-        backgroundColor: '#ccc',
-    },
-    authorInfo: {
-        flexDirection: 'column',
-        justifyContent: 'center',
     },
     displayName: {
-        fontWeight: 'bold',
+        fontWeight: "bold",
         fontSize: 16,
     },
     username: {
-        color: '#657786',
+        color: "#888",
         fontSize: 14,
     },
-    rightItem: {
-        marginLeft: 'auto',
-        color: '#657786',
-        fontSize: 12,
-    },
     content: {
-        fontSize: 15,
-        lineHeight: 20,
+        fontSize: 16,
         marginBottom: 12,
     },
-    separator: {
-        height: 1,
-        backgroundColor: '#e1e8ed',
-        marginVertical: 8,
-    },
     actions: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
+        flexDirection: "row",
+        justifyContent: "space-around",
+        marginVertical: 12,
     },
     actionButton: {
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 8,
-        backgroundColor: '#f1f1f1', // subtle background for buttons
+        padding: 8,
+        backgroundColor: "#f2f2f2",
+        borderRadius: 6,
     },
     actionText: {
-        color: '#1DA1F2',
-        fontWeight: '600',
+        color: "#1DA1F2",
+        fontWeight: "600",
     },
-    postStats: {
-        marginTop: 6,
-        color: '#657786',
-        fontSize: 12,
+    replyContainer: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    replyInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 6,
+        padding: 8,
+    },
+    sendButton: {
+        color: "#1DA1F2",
+        fontWeight: "600",
+        alignSelf: "center",
     },
 });
-

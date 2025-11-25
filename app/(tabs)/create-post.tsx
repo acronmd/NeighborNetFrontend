@@ -1,33 +1,32 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { usePosts } from '@/app/data/demoPostData';
-import { masterUsers } from '@/app/data/demoUserData';
 import { useState } from 'react';
+import React from 'react';
 
 export default function CreatePostScreen() {
-    const { addPost } = usePosts();
-    const [content, setContent] = useState('');
+    const { createPost } = usePosts(); // <-- API-based create
+    const [content, setContent] = useState("");
 
-    const handlePost = () => {
+    const handlePost = async () => {
         if (!content.trim()) {
-            Alert.alert('Cannot post empty content!');
+            Alert.alert("Cannot post empty content!");
             return;
         }
 
-        // Example: post as first user
-        addPost({
-            userData: masterUsers[0], // pick any user
-            content,
-            contentType: 'text',
-            comments: [],
-        });
-
-        setContent(''); // clear input
-        Alert.alert('Post added!');
+        try {
+            await createPost(content, "general"); // <--- API request
+            setContent("");
+            Alert.alert("Post created!");
+        } catch (err: any) {
+            Alert.alert("Error", err.message || "Failed to create post");
+            console.log(err);
+        }
     };
 
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Create a New Post</Text>
+
             <TextInput
                 value={content}
                 onChangeText={setContent}
@@ -35,6 +34,7 @@ export default function CreatePostScreen() {
                 multiline
                 placeholder="What's on your mind?"
             />
+
             <TouchableOpacity onPress={handlePost} style={styles.button}>
                 <Text style={styles.buttonText}>Post</Text>
             </TouchableOpacity>
@@ -44,21 +44,21 @@ export default function CreatePostScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 16 },
-    title: { fontWeight: 'bold', fontSize: 18, marginBottom: 12 },
+    title: { fontWeight: "bold", fontSize: 18, marginBottom: 12 },
     input: {
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: "#ccc",
         borderRadius: 8,
         padding: 12,
         marginBottom: 12,
         minHeight: 80,
-        textAlignVertical: 'top',
+        textAlignVertical: "top",
     },
     button: {
-        backgroundColor: '#1DA1F2',
+        backgroundColor: "#1DA1F2",
         padding: 12,
         borderRadius: 8,
-        alignItems: 'center',
+        alignItems: "center",
     },
-    buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });

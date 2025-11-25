@@ -1,22 +1,17 @@
-import { FlatList } from "react-native";
-import { usePosts } from "@/app/data/demoPostData";
+import React from "react";
+import { usePosts } from "../data/demoPostData";
+import {FlatList, Pressable, View, Text} from "react-native";
 import Post from "@/app/feed/Post";
 
 export default function FeedScreen() {
-    const { posts } = usePosts(); // 🔥 get data from context
-
-    // Map posts to clone userData to prevent shared mutation
-    const postsWithClonedUsers = Object.values(posts).map(post => ({
-        ...post,
-        userData: { ...post.userData },
-    }));
+    const { posts, refreshPosts, likePost } = usePosts();
 
     return (
         <FlatList
-            data={postsWithClonedUsers} // ✅ isolated userData per post
-            keyExtractor={(item) => String(item.id)}
-            renderItem={({ item }) => <Post {...item} />}
+            data={posts}        // array of ApiPost
+            keyExtractor={(item) => item.post_id.toString()}
+            renderItem={({ item }) => <Post post={item} />}
+            contentContainerStyle={{ paddingBottom: 60 }}
         />
     );
 }
-
