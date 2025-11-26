@@ -41,6 +41,7 @@ export const PostProvider = ({ children }) => {
         await refreshPosts();
     };
 
+
     return (
         <PostContext.Provider value={{ posts, refreshPosts, createPost, likePost }}>
             {children}

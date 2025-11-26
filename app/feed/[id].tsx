@@ -2,16 +2,26 @@ import { View, Text, Image, Pressable, TextInput, ActivityIndicator, StyleSheet 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useApiPost } from "@/app/hooks/useApiPost";
+import { useComments } from "@/app/hooks/useComments";
 import React from "react";
 
 export default function PostDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const postId = Number(id);
-    const { post, loading } = useApiPost(postId);
+    const { post, loading, refreshPost } = useApiPost(postId);
     const [replyText, setReplyText] = useState("");
 
-    if (loading) return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
+    const { comments, loading: commentsLoading, createComment } = useComments(postId);
+
+    if (commentsLoading) return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
+
+    const handleSend = async () => {
+        if (!replyText.trim()) return;
+        await createComment(replyText);
+        setReplyText(""); // clear input
+        await refreshPost();
+    };
 
     if (!post) {
         return (
@@ -71,7 +81,10 @@ export default function PostDetailScreen() {
                         paddingVertical: 4,
                     }}
                 />
-                <Pressable style={{ marginLeft: 8, justifyContent: 'center', paddingHorizontal: 8 }}>
+                <Pressable
+                    style={{ marginLeft: 8, justifyContent: 'center', paddingHorizontal: 8 }}
+                    onPress={handleSend}
+                >
                     <Text style={{ color: '#1DA1F2', fontWeight: '600' }}>Send</Text>
                 </Pressable>
             </View>
@@ -79,30 +92,36 @@ export default function PostDetailScreen() {
             {/* Separator */}
             <View style={styles.separator} />
 
-            {/* Comments
-             {post.comments && post.comments.length > 0 ? (
-                post.comments.map((comment) => (
-                    <View key={comment.id} style={styles.comment}>
-                        <Pressable onPress={() => router.push(`/users/${comment.userData.id}`)}>
-                            <Image
-                                source={
-                                    comment.userData.avatarUrl
-                                        ? { uri: comment.userData.avatarUrl }
-                                        : require('@/assets/images/favicon.png')
-                                }
-                                style={styles.commentAvatar}
-                            />
-                        </Pressable>
-                        <View style={styles.commentBody}>
-                            <Text style={styles.commentAuthor}>{comment.userData.authorDisplayName}</Text>
-                            <Text>{comment.text}</Text>
+            {/* Comments */}
+            <View style={styles.commentsContainer}>
+                <Text style={styles.commentsTitle}>Comments</Text>
+
+                {commentsLoading ? (
+                    <ActivityIndicator />
+                ) : comments.length > 0 ? (
+                    comments.map((comment) => (
+                        <View key={comment.comment_id} style={styles.comment}>
+                            <Pressable onPress={() => router.push(`/users/${comment.user_id}`)}>
+                                <Image
+                                    source={
+                                        comment.author_image
+                                            ? { uri: comment.author_image }
+                                            : require('@/assets/images/default-avatar.png')
+                                    }
+                                    style={styles.commentAvatar}
+                                />
+                            </Pressable>
+                            <View style={styles.commentBody}>
+                                <Text style={styles.commentAuthor}>{comment.author_name}</Text>
+                                <Text>{comment.content}</Text>
+                            </View>
                         </View>
-                    </View>
-                ))
-            ) : (
-                <Text style={{ marginVertical: 8, color: '#657786' }}>No comments</Text>
-            )}
-             */}
+                    ))
+                ) : (
+                    <Text style={styles.noComments}>No comments yet.</Text>
+                )}
+            </View>
+
 
         </View>
     );
@@ -124,22 +143,6 @@ const styles = StyleSheet.create({
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 16, backgroundColor: '#f5f8fa' },
-    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12, backgroundColor: '#ccc' },
-    authorInfo: { flexDirection: 'column', justifyContent: 'center' },
-    displayName: { fontWeight: 'bold', fontSize: 16 },
-    username: { color: '#657786', fontSize: 14 },
-    rightItem: { marginLeft: 'auto', color: '#657786', fontSize: 12 },
-    content: { fontSize: 15, lineHeight: 20 },
-    separator: { height: 1, backgroundColor: '#e1e8ed', marginVertical: 12 },
-    commentsContainer: { flex: 1 },
-    commentsTitle: { fontWeight: 'bold', fontSize: 16, marginBottom: 8 },
-    comment: { flexDirection: 'row', marginBottom: 18 },
-    commentAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 8, backgroundColor: '#ccc' },
-    commentContent: { flex: 1 },
-    commentAuthor: { fontWeight: 'bold', fontSize: 14 },
-    noComments: { fontStyle: 'italic', color: '#657786' },
-
     postCard: {
         padding: 16,
         borderRadius: 12,
@@ -152,10 +155,15 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
     },
-    actions: {
-        flexDirection: 'row',
-        marginTop: 8,
-    },
+    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12, backgroundColor: '#ccc' },
+    authorInfo: { flexDirection: 'column', justifyContent: 'center' },
+    displayName: { fontWeight: 'bold', fontSize: 16 },
+    username: { color: '#657786', fontSize: 14 },
+    rightItem: { marginLeft: 'auto', color: '#657786', fontSize: 12 },
+    content: { fontSize: 15, lineHeight: 22, marginBottom: 12 },
+    separator: { height: 1, backgroundColor: '#e1e8ed', marginVertical: 12 },
+    actions: { flexDirection: 'row', marginBottom: 12 },
     actionButton: {
         paddingVertical: 6,
         paddingHorizontal: 10,
@@ -163,17 +171,22 @@ const styles = StyleSheet.create({
         backgroundColor: '#f1f1f1',
         marginRight: 12,
     },
-    actionText: {
-        color: '#1DA1F2',
-        fontWeight: '600',
-    },
-    postStats: {
-        marginTop: 6,
-        color: '#657786',
-        fontSize: 12,
-    },
-    commentBody: {
-        flex: 1,
-    },
+    actionText: { color: '#1DA1F2', fontWeight: '600' },
 
+    // Comments
+    commentsContainer: { marginTop: 12 },
+    commentsTitle: { fontWeight: 'bold', fontSize: 16, marginBottom: 8 },
+    comment: {
+        flexDirection: 'row',
+        marginBottom: 12,
+        padding: 8,
+        backgroundColor: '#f9f9f9',
+        borderRadius: 8,
+    },
+    commentAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 8, backgroundColor: '#ccc' },
+    commentBody: { flex: 1 },
+    commentAuthor: { fontWeight: 'bold', fontSize: 14, marginBottom: 2 },
+    commentContentText: { fontSize: 14, lineHeight: 20 },
+    noComments: { fontStyle: 'italic', color: '#657786', marginVertical: 8 },
 });
+
