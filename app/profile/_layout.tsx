@@ -10,7 +10,7 @@ export default function FeedStackLayout() {
         >
             <Stack.Screen
                 name="[id]"
-                options={{ title: 'User Details' }}
+                options={{ title: 'Profile' }}
             />
         </Stack>
     );

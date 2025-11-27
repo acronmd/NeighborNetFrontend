@@ -101,7 +101,7 @@ export default function PostDetailScreen() {
                 ) : comments.length > 0 ? (
                     comments.map((comment) => (
                         <View key={comment.comment_id} style={styles.comment}>
-                            <Pressable onPress={() => router.push(`/users/${comment.user_id}`)}>
+                            <Pressable onPress={() => router.push(`/profile/${comment.user_id}`)}>
                                 <Image
                                     source={
                                         comment.author_image

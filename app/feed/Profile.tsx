@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { usePosts } from '@/app/data/demoPostData';
-import { useRouter } from 'expo-router';
 
 type ApiUser = {
     user_id: number;
-    email: string;
+    email?: string;
     name: string;
+    username: string;
+    display_name: string;
     bio?: string | null;
     street?: string | null;
     verification_status: string;
@@ -18,24 +20,51 @@ type ApiUser = {
 
 export default function Profile() {
     const router = useRouter();
+    const { id } = useLocalSearchParams<{ id?: string }>();  // id from route
+    const viewingUserId = id ? Number(id) : null;
+
     const { posts } = usePosts();
 
     const [user, setUser] = useState<ApiUser | null>(null);
+    const [loggedInUserId, setLoggedInUserId] = useState<number | null>(null);
+
     const [loading, setLoading] = useState(true);
-
     const [isEditing, setEditing] = useState(false);
-    const [bio, setBio] = useState('');
+    const [bio, setBio] = useState("");
 
-    // Fetch current user
+    // Load logged-in user ID from /profile
+    useEffect(() => {
+        async function loadLoggedInUser() {
+            const token = await SecureStore.getItemAsync('authToken');
+            const ip = await SecureStore.getItemAsync('serverIp');
+
+            const res = await fetch(`http://${ip}/api/users/profile`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (data.success) setLoggedInUserId(data.user.user_id);
+        }
+        loadLoggedInUser();
+    }, []);
+
+    // Fetch user being viewed (self or other)
     useEffect(() => {
         async function fetchUser() {
             try {
                 const token = await SecureStore.getItemAsync('authToken');
                 const ip = await SecureStore.getItemAsync('serverIp');
-                const res = await fetch(`http://${ip}/api/users/profile`, {
+
+                const url = viewingUserId
+                    ? `http://${ip}/api/users/public/${viewingUserId}`
+                    : `http://${ip}/api/users/profile`;
+
+                const res = await fetch(url, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
+
                 const data = await res.json();
+
                 if (data.success) {
                     setUser(data.user);
                     setBio(data.user.bio ?? '');
@@ -46,16 +75,16 @@ export default function Profile() {
                 setLoading(false);
             }
         }
+
         fetchUser();
-    }, []);
+    }, [viewingUserId]);
 
     if (loading) return <View style={styles.center}><ActivityIndicator size="large" /></View>;
     if (!user) return <View style={styles.center}><Text>User not found.</Text></View>;
 
-    const userPosts = Object.values(posts).filter(p => p.user_id === user.user_id);
+    const isSelf = loggedInUserId === user.user_id;
 
-    const currentUserId = user.user_id; // same as fetched user
-    const isSelf = true;
+    const userPosts = Object.values(posts).filter(p => p.user_id === user.user_id);
 
     async function saveEdits() {
         try {
@@ -68,27 +97,21 @@ export default function Profile() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    bio,          // only sending bio since it's the only editable state
-                })
+                body: JSON.stringify({ bio })
             });
 
             const data = await res.json();
 
-            if (res.ok && data.success) {
-                // Update local state to reflect saved edits
-                setUser((prev) => prev ? { ...prev, bio } : prev);
+            if (data.success) {
+                setUser(prev => prev ? { ...prev, bio } : prev);
                 setEditing(false);
             } else {
-                console.error('Failed to update profile', data);
-                alert('Failed to update profile');
+                alert("Failed to update profile");
             }
-        } catch (err) {
-            console.error(err);
-            alert('An error occurred while updating your profile');
+        } catch {
+            alert("Error saving profile");
         }
     }
-
 
     return (
         <ScrollView style={styles.container}>
@@ -96,8 +119,9 @@ export default function Profile() {
                 <View style={styles.avatar}>
                     <Text style={styles.avatarLetter}>{user.name[0]}</Text>
                 </View>
-                <Text style={styles.name}>{user.name}</Text>
-                <Text style={styles.handle}>@user{user.user_id}</Text>
+
+                <Text style={styles.name}>{user.display_name}</Text>
+                <Text style={styles.handle}>@{user.username}</Text>
                 {user.street && <Text style={styles.location}>{user.street}</Text>}
             </View>
 
@@ -106,10 +130,11 @@ export default function Profile() {
                 {isEditing ? (
                     <TextInput value={bio} onChangeText={setBio} style={styles.input} multiline />
                 ) : (
-                    <Text>{bio}</Text>
+                    <Text>{bio || "No bio."}</Text>
                 )}
             </View>
 
+            {/* Only show edit button if viewing your own profile */}
             {isSelf && (
                 <View style={styles.section}>
                     {isEditing ? (
@@ -129,7 +154,9 @@ export default function Profile() {
                 {userPosts.length > 0 ? (
                     userPosts.map(p => (
                         <TouchableOpacity key={p.post_id} onPress={() => router.push(`/feed/${p.post_id}`)}>
-                            <Text style={styles.postTitle}>{p.content.length > 80 ? p.content.slice(0, 80) + '…' : p.content}</Text>
+                            <Text style={styles.postTitle}>
+                                {p.content.length > 80 ? p.content.slice(0, 80) + '…' : p.content}
+                            </Text>
                         </TouchableOpacity>
                     ))
                 ) : (
@@ -139,6 +166,7 @@ export default function Profile() {
         </ScrollView>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 10 },
