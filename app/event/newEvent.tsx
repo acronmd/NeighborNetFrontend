@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, ScrollView, Alert, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useEvents } from '@/app/data/demoEventData';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Button, Platform, ScrollView, Text, TextInput } from 'react-native';
 
 export default function NewEventPage() {
     const router = useRouter();
@@ -29,7 +28,7 @@ export default function NewEventPage() {
                 onChange: (event, selectedDate) => {
                     if (selectedDate) setEventDate(selectedDate);
                 },
-                mode: 'datetime',
+                mode: 'date',
                 is24Hour: true,
             });
         } else {

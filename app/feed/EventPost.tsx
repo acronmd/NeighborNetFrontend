@@ -1,9 +1,11 @@
-import { useRouter } from 'expo-router';
-import {useEffect, useState} from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { EventType } from '@/app/data/demoEventData'; // adjust import if needed
-import React from 'react';
-import {api} from "@/app/lib/api";
+import { useComments } from '@/app/hooks/useComments';
+import { api } from "@/app/lib/api";
+import CommentInput from '@/components/ui/CommentInput';
+import CommentList from '@/components/ui/CommentList';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type EventPostProps = EventType & {
     current_attendees?: number;
@@ -23,11 +25,26 @@ export default function EventPost({
                                   }: EventPostProps) {
     const router = useRouter();
     const [replyText, setReplyText] = useState('');
+    const { comments, loading, createComment } = useComments(post_id);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleReply = () => {
+    const handleReply = async () => {
         if (!replyText.trim()) return;
-        // implement comment logic if you have one
+        await createComment(replyText.trim());
         setReplyText('');
+    };
+
+    const handleCreateComment = async (content: string) => {
+        if (!content.trim() || isSubmitting) return;
+            setIsSubmitting(true);
+        try {
+            await createComment(content.trim()); // the hook will re-fetch comments
+        } catch (err) {
+            console.error('createComment error', err);
+            Alert.alert('Error', 'Could not post comment.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const [authorName, setAuthorName] = useState<string | null>(null);
@@ -73,7 +90,20 @@ export default function EventPost({
                     </Pressable>
 
                 </View>
+                {/* Comments section */}
+                <View style={{ marginTop: 12 }}>
+                    {loading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                        <CommentList comments={comments} />
+                    )}
 
+                    <CommentInput onSubmit={async (text) => {
+                        await handleCreateComment(text);
+                    }} />
+
+                    {isSubmitting ? <Text style={{ color: '#B8BED0', marginTop: 6 }}>Sending...</Text> : null}
+                </View>
             </View>
         </View>
     );

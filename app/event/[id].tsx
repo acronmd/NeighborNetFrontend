@@ -1,14 +1,13 @@
-import { View, Text, Image, StyleSheet, Pressable, BackHandler } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { useEvents, EventType } from "@/app/data/demoEventData";
+import { EventType, useEvents } from "@/app/data/demoEventData";
 import { api } from "@/app/lib/api";
-import React from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { BackHandler, Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function EventDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { events, addRSVP } = useEvents();
+    const { events } = useEvents();
 
     const eventId = Number(id);
     const event = events.find((e: EventType & { event_id: number }) => e.event_id === eventId);
@@ -75,7 +74,9 @@ export default function EventDetailScreen() {
                 <View style={styles.buttons}>
                     <Pressable
                         style={styles.rsvpBtn}
-                        onPress={() => addRSVP(String(event.event_id))}
+                        onPress={() => {
+                            // TODO: Implement RSVP functionality here if needed
+                        }}
                     >
                         <Text style={styles.rsvpText}>RSVP</Text>
                     </Pressable>
