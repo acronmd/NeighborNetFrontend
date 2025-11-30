@@ -16,17 +16,38 @@ export default function Post({ post }: { post: ApiPost }) {
         const token = await SecureStore.getItemAsync("authToken");
         const ip = await SecureStore.getItemAsync("serverIp");
 
-        const res = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {
+        // Try LIKE first
+        const likeRes = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (res.ok) {
+        if (likeRes.ok) {
+            // Successfully liked
             setLikes((prev) => prev + 1);
-        } else {
-            Alert.alert("Failed to like post");
+            return;
         }
+
+        // If already liked --> server returns 409
+        if (likeRes.status === 409) {
+            // Send UNLIKE instead
+            const unlikeRes = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (unlikeRes.ok) {
+                setLikes((prev) => prev - 1);
+            } else {
+                Alert.alert("Failed to unlike post");
+            }
+
+            return;
+        }
+
+        Alert.alert("Failed to like post");
     };
+
 
     // --- COMMENT ---
     const handleComment = async () => {
@@ -85,7 +106,7 @@ export default function Post({ post }: { post: ApiPost }) {
                 </Pressable>
 
                 <Pressable style={styles.actionButton} onPress={handleLike}>
-                    <Text style={styles.actionText}>❤️ {likes} Likes</Text>
+                    <Text style={styles.actionText}>❤ {likes} Like{likes === 1 ? "" : "s"}</Text>
                 </Pressable>
             </View>
 
