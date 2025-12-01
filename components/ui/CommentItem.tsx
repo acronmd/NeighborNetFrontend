@@ -1,4 +1,5 @@
 import type { CommentType } from '@/app/data/demoEventData';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function CommentItem({ comment, userName }: { comment: CommentType; userName?: string }) {

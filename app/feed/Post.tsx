@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { View, Text, Image, StyleSheet, Pressable, TextInput, Alert } from "react-native";
-import * as SecureStore from "expo-secure-store";
-import { ApiPost } from "../types/apiPost";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import React, { useState } from "react";
+import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { ApiPost } from "../types/apiPost";
 
 export default function Post({ post }: { post: ApiPost }) {
     const router = useRouter();

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { api } from "../lib/api";
 
 export type EventType = {
@@ -32,9 +32,18 @@ type EventContextType = {
     }) => Promise<void>;
 };
 
+export type CommentType = {
+  id: string | number;
+  userData: {
+    authorUsername: string | undefined; id: string | number 
+    };
+  text: string;
+  createdAt: string;
+};
+
 const EventContext = createContext<EventContextType | null>(null);
 
-export const EventProvider = ({ children }) => {
+export const EventProvider = ({ children }: { children: React.ReactNode }) => {
     const [events, setEvents] = useState<EventType[]>([]);
 
     useEffect(() => {
@@ -52,7 +61,7 @@ export const EventProvider = ({ children }) => {
     // ----------------------------
     // Create new event
     // ----------------------------
-    const createEvent = async (newEvent) => {
+    const createEvent = async (newEvent: any) => {
         await api("/api/events", {
             method: "POST",
             body: JSON.stringify(newEvent),
