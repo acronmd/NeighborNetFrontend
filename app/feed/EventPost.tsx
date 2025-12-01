@@ -4,6 +4,7 @@ import { api } from "@/app/lib/api";
 import CommentInput from '@/components/ui/CommentInput';
 import CommentList from '@/components/ui/CommentList';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -24,23 +25,32 @@ export default function EventPost({
                                       status,
                                   }: EventPostProps) {
     const router = useRouter();
-    const [replyText, setReplyText] = useState('');
-    const { comments, loading, createComment } = useComments(post_id);
+    const { comments, loading, createComment, fetchComments } = useComments(post_id);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleReply = async () => {
-        if (!replyText.trim()) return;
-        await createComment(replyText.trim());
-        setReplyText('');
-    };
-
-    const handleCreateComment = async (content: string) => {
-        if (!content.trim() || isSubmitting) return;
-            setIsSubmitting(true);
+    // Post comment to event-specific endpoint using stored token/ip
+    const handleReply = async (content?: string) => {
+        const bodyText = (content ?? '').trim();
+        if (!bodyText || isSubmitting) return;
+        setIsSubmitting(true);
         try {
-            await createComment(content.trim()); // the hook will re-fetch comments
+            const token = await SecureStore.getItemAsync('authToken');
+            const ip = await SecureStore.getItemAsync('serverIp');
+            const res = await fetch(`http://${ip}/api/events/${event_id}/comment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: token ? `Bearer ${token}` : '',
+                },
+                body: JSON.stringify({ content: bodyText }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || data.message || 'Failed to post comment');
+
+            // Refresh comments via hook if available
+            if (typeof fetchComments === 'function') await fetchComments();
         } catch (err) {
-            console.error('createComment error', err);
+            console.error('handleReply error', err);
             Alert.alert('Error', 'Could not post comment.');
         } finally {
             setIsSubmitting(false);
@@ -64,6 +74,14 @@ export default function EventPost({
     }, [post_id]);
 
     const dateObj = new Date(event_date);
+
+    // Map API comment shape to local CommentType expected by CommentList
+    const mappedComments = (comments || []).map((c: any) => ({
+        id: c.comment_id,
+        userData: { authorUsername: c.author_name, id: c.user_id },
+        text: c.content,
+        createdAt: c.created_at || new Date().toISOString(),
+    }));
 
     return (
         <View style={styles.card}>
@@ -95,11 +113,11 @@ export default function EventPost({
                     {loading ? (
                         <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                        <CommentList comments={comments} />
+                        <CommentList comments={mappedComments} />
                     )}
 
                     <CommentInput onSubmit={async (text) => {
-                        await handleCreateComment(text);
+                        await handleReply(text);
                     }} />
 
                     {isSubmitting ? <Text style={{ color: '#B8BED0', marginTop: 6 }}>Sending...</Text> : null}
