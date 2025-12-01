@@ -98,7 +98,7 @@ export default function PostDetailScreen() {
 
                 <View style={styles.authorInfo}>
                     <Text style={styles.displayName}>{post.author_name}</Text>
-                    <Text style={styles.username}>@userID{post.user_id}</Text>
+                    <Text style={styles.username}>@userID{post.username}</Text>
                 </View>
 
                 <Text style={styles.rightItem}>{post.location_lat} away</Text>

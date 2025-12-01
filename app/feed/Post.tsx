@@ -89,7 +89,7 @@ export default function Post({ post }: { post: ApiPost }) {
 
                 <View>
                     <Text style={styles.displayName}>{post.author_name}</Text>
-                    <Text style={styles.username}>@userID{post.user_id}</Text>
+                    <Text style={styles.username}>@{post.username}</Text>
                 </View>
             </View>
 

@@ -120,7 +120,7 @@ export default function Profile() {
                     <Text style={styles.avatarLetter}>{user.name[0]}</Text>
                 </View>
 
-                <Text style={styles.name}>{user.display_name}</Text>
+                <Text style={styles.name}>{user.name}</Text>
                 <Text style={styles.handle}>@{user.username}</Text>
                 {user.street && <Text style={styles.location}>{user.street}</Text>}
             </View>

@@ -16,6 +16,8 @@ export type ApiPost = {
     created_at: string;
     updated_at: string;
     author_name: string;
+    username: string;
+    display_name: string;
     author_image: string | null;
 };
 

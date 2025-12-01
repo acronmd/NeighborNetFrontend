@@ -2,7 +2,9 @@ import { EventType, useEvents } from "@/app/data/demoEventData";
 import { api } from "@/app/lib/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { BackHandler, Pressable, StyleSheet, Text, View } from "react-native";
+import {Alert, BackHandler, Pressable, StyleSheet, Text, View} from "react-native";
+import * as SecureStore from "expo-secure-store";
+
 
 export default function EventDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -13,6 +15,32 @@ export default function EventDetailScreen() {
     const event = events.find((e: EventType & { event_id: number }) => e.event_id === eventId);
 
     const [authorName, setAuthorName] = useState<string | null>(null);
+    const [authorUsername, setAuthorUsername] = useState<string | null>(null);
+
+    const [rsvpStatus, setRsvpStatus] = useState<string | null>(null);
+    const [rsvpLoading, setRsvpLoading] = useState(false);
+    const [currentAttendees, setCurrentAttendees] = useState(event?.current_attendees ?? 0);
+
+    useEffect(() => {
+        const fetchRSVP = async () => {
+            try {
+                const token = await SecureStore.getItemAsync("authToken");
+                const ip = await SecureStore.getItemAsync("serverIp");
+
+                const res = await fetch(`http://${ip}/api/events/${eventId}/rsvp`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await res.json();
+                if (data.success && data.rsvp) {
+                    setRsvpStatus(data.rsvp.status);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchRSVP();
+    }, [eventId]);
+
 
     useEffect(() => {
         const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -26,9 +54,20 @@ export default function EventDetailScreen() {
         if (!event) return;
         const fetchPost = async () => {
             try {
-                const data = await api(`/api/posts/${event.post_id}`);
-                if (data.success && data.post) {
-                    setAuthorName(data.post.author_name);
+                const token = await SecureStore.getItemAsync("authToken");
+                const ip = await SecureStore.getItemAsync("serverIp");
+
+                const res = await fetch(`http://${ip}/api/users/public/${event.organizer_id}`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                const data = await res.json();
+
+                if (data.success && data.user) {
+                    setAuthorName(data.user.display_name);
+                    setAuthorUsername(data.user.username);
                 }
             } catch (err) {
                 console.error(err);
@@ -36,6 +75,41 @@ export default function EventDetailScreen() {
         };
         fetchPost();
     }, [event]);
+
+    const handleRSVP = async (status: "going" | "interested" | "not_going") => {
+        if (rsvpLoading) return;
+        setRsvpLoading(true);
+
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const ip = await SecureStore.getItemAsync("serverIp");
+
+            const res = await fetch(`http://${ip}/api/events/${eventId}/rsvp`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                setRsvpStatus(data.status);
+                if (data.current_attendees !== undefined) {
+                    setCurrentAttendees(data.current_attendees);
+                }
+            } else {
+                Alert.alert("Error", data.error || "Could not RSVP");
+            }
+        } catch (err) {
+            console.error(err);
+            Alert.alert("Error", "Could not RSVP");
+        } finally {
+            setRsvpLoading(false);
+        }
+    };
+
 
     if (!event) {
         return (
@@ -54,7 +128,7 @@ export default function EventDetailScreen() {
                 <Text style={styles.title}>{event.title}</Text>
                 {authorName && (
                     <Pressable onPress={() => router.push(`/users/${event.organizer_id}`)}>
-                        <Text style={styles.host}>Hosted by {authorName} (@userID{event.organizer_id})</Text>
+                        <Text style={styles.host}>Hosted by {authorName} (@{authorUsername})</Text>
                     </Pressable>
                 )}
 
@@ -67,20 +141,37 @@ export default function EventDetailScreen() {
 
                 {/* ATTENDING */}
                 <Text style={styles.attending}>
-                    👥 {event.current_attendees ?? 0} / {event.max_attendees ?? '—'}
+                    👥 {currentAttendees} / {event.max_attendees ?? "—"}
                 </Text>
 
                 {/* BUTTONS */}
                 <View style={styles.buttons}>
-                    <Pressable
-                        style={styles.rsvpBtn}
-                        onPress={() => {
-                            // TODO: Implement RSVP functionality here if needed
-                        }}
-                    >
-                        <Text style={styles.rsvpText}>RSVP</Text>
-                    </Pressable>
+                    {["going", "interested", "not_going"].map((statusOption) => (
+                        <Pressable
+                            key={statusOption}
+                            onPress={() => handleRSVP(statusOption as any)}
+                            style={{
+                                flex: 1,
+                                paddingVertical: 12,
+                                borderRadius: 30,
+                                marginHorizontal: 4,
+                                alignItems: "center",
+                                backgroundColor: rsvpStatus === statusOption ? "#4CAF50" : "white",
+                            }}
+                        >
+                            <Text
+                                style={{
+                                    color: rsvpStatus === statusOption ? "white" : "#2E3347",
+                                    fontWeight: "700",
+                                    textTransform: "capitalize",
+                                }}
+                            >
+                                {statusOption}
+                            </Text>
+                        </Pressable>
+                    ))}
                 </View>
+
             </View>
         </View>
     );
