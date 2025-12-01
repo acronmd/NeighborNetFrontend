@@ -1,7 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import {  View, Text, BackHandler, TextInput,TouchableOpacity,  StyleSheet,  ScrollView,} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { usePosts } from '@/app/data/demoPostData';
+import { usePosts } from "@/app/data/demoPostData";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  BackHandler,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -13,14 +21,17 @@ export default function PostDetailScreen() {
   const post = Object.values(posts).find((p) => p.id === postId);
 
   // Local state for comment input
-  const [commentText, setCommentText] = useState('');
+  const [commentText, setCommentText] = useState("");
 
   // Handle Android hardware back button
   useEffect(() => {
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      router.back(); // mimic the header back button
-      return true; // prevent default behavior
-    });
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        router.back(); // mimic the header back button
+        return true; // prevent default behavior
+      }
+    );
     return () => subscription.remove();
   }, [router]);
 
@@ -37,12 +48,14 @@ export default function PostDetailScreen() {
 
     const newComment = {
       id: Date.now().toString(),
-      author: 'jonathan', // demo user
+      author: "jonathan", // demo user
       text: commentText.trim(),
     };
 
-    addComment(String(post.id), newComment);
-    setCommentText('');
+    if (post) {
+      addComment(String(post.id), newComment);
+    }
+    setCommentText("");
   }
 
   return (
@@ -61,7 +74,9 @@ export default function PostDetailScreen() {
             </View>
           ))
         ) : (
-          <Text style={styles.noComments}>No comments yet. Be the first to comment.</Text>
+          <Text style={styles.noComments}>
+            No comments yet. Be the first to comment.
+          </Text>
         )}
 
         <View style={styles.commentInputSection}>
@@ -73,7 +88,10 @@ export default function PostDetailScreen() {
             style={styles.input}
             multiline
           />
-          <TouchableOpacity onPress={handleAddComment} style={styles.submitBtn}>
+          <TouchableOpacity
+            onPress={handleAddComment}
+            style={styles.submitBtn}
+          >
             <Text style={styles.submitText}>Submit</Text>
           </TouchableOpacity>
         </View>
@@ -85,13 +103,13 @@ export default function PostDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   notFound: {
     padding: 16,
   },
   title: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 18,
     marginBottom: 8,
   },
@@ -104,27 +122,27 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   sectionTitle: {
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 8,
   },
   comment: {
     padding: 10,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
     borderRadius: 8,
     marginBottom: 8,
   },
   commentMeta: {
-    color: '#4b5563',
+    color: "#4b5563",
     marginBottom: 4,
     fontSize: 12,
   },
   commentText: {
     fontSize: 14,
-    color: '#0b1220',
+    color: "#0b1220",
   },
   noComments: {
-    color: '#6b7280',
-    fontStyle: 'italic',
+    color: "#6b7280",
+    fontStyle: "italic",
     marginBottom: 8,
   },
   commentInputSection: {
@@ -132,29 +150,22 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     borderRadius: 8,
     padding: 10,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     marginBottom: 10,
   },
   submitBtn: {
-    backgroundColor: '#2563eb',
+    backgroundColor: "#2563eb",
     padding: 10,
     borderRadius: 8,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   submitText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: '600',
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "600",
   },
 });
 
-    return (
-        <View style={{ padding: 16 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 18}}>Post ID: {post.id}</Text>
-            <Text>{post.content}</Text>
-        </View>
-    );
-}
