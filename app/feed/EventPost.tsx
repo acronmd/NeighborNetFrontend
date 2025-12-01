@@ -34,20 +34,7 @@ export default function EventPost({
         if (!bodyText || isSubmitting) return;
         setIsSubmitting(true);
         try {
-            const token = await SecureStore.getItemAsync('authToken');
-            const ip = await SecureStore.getItemAsync('serverIp');
-            const res = await fetch(`http://${ip}/api/events/${event_id}/comment`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: token ? `Bearer ${token}` : '',
-                },
-                body: JSON.stringify({ content: bodyText }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || data.message || 'Failed to post comment');
-
-            // Refresh comments via hook if available
+            await createComment(bodyText);
             if (typeof fetchComments === 'function') await fetchComments();
         } catch (err) {
             console.error('handleReply error', err);
