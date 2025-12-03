@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import * as SecureStore from "expo-secure-store";
 import { api } from "../lib/api";
 
 export type EventType = {
@@ -47,15 +48,32 @@ export const EventProvider = ({ children }: { children: React.ReactNode }) => {
     const [events, setEvents] = useState<EventType[]>([]);
 
     useEffect(() => {
-        refreshEvents();
+        checkAuthAndLoad();
     }, []);
+
+    const checkAuthAndLoad = async () => {
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const ip = await SecureStore.getItemAsync("serverIp");
+            
+            if (token && ip) {
+                await refreshEvents();
+            }
+        } catch (err) {
+            console.error('Auth check failed:', err);
+        }
+    };
 
     // ----------------------------
     // Load all events
     // ----------------------------
     const refreshEvents = async () => {
-        const data = await api("/api/events"); // GET /api/events
-        setEvents(data.events || []);
+        try {
+            const data = await api("/api/events"); // GET /api/events
+            setEvents(data.events || []);
+        } catch (err) {
+            console.error('Failed to refresh events:', err);
+        }
     };
 
     // ----------------------------

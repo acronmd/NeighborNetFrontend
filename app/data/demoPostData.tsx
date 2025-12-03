@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import * as SecureStore from "expo-secure-store";
 import { api } from "../lib/api"; // <-- import the wrapper
 import { ApiPost } from "../types/apiPost"
 
@@ -7,21 +8,40 @@ type PostContextType = {
     refreshPosts: () => Promise<void>;
     createPost: (content: string, type?: string) => Promise<void>;
     likePost: (postId: number) => Promise<void>;
+    deletePost: (postId: number) => Promise<void>;
+    updatePost: (postId: number, content: string) => Promise<void>;
 };
 
 const PostContext = createContext<PostContextType | null>(null);
 
-export const PostProvider = ({ children }) => {
+export const PostProvider = ({ children }: { children: React.ReactNode }) => {
     const [posts, setPosts] = useState<ApiPost[]>([]);
 
-    // Load feed on startup
+    // Load feed on startup (only if authenticated)
     useEffect(() => {
-        refreshPosts();
+        checkAuthAndLoad();
     }, []);
 
+    const checkAuthAndLoad = async () => {
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const ip = await SecureStore.getItemAsync("serverIp");
+            
+            if (token && ip) {
+                await refreshPosts();
+            }
+        } catch (err) {
+            console.error('Auth check failed:', err);
+        }
+    };
+
     const refreshPosts = async () => {
-        const data = await api("/api/feed");
-        setPosts(data.posts || data);
+        try {
+            const data = await api("/api/feed");
+            setPosts(data.posts || data);
+        } catch (err) {
+            console.error('Failed to refresh posts:', err);
+        }
     };
 
     const createPost = async (content: string, type = "general") => {
@@ -41,9 +61,25 @@ export const PostProvider = ({ children }) => {
         await refreshPosts();
     };
 
+    const deletePost = async (postId: number) => {
+        await api(`/api/posts/${postId}`, {
+            method: "DELETE",
+        });
+
+        await refreshPosts();
+    };
+
+    const updatePost = async (postId: number, content: string) => {
+        await api(`/api/posts/${postId}`, {
+            method: "PUT",
+            body: JSON.stringify({ content }),
+        });
+
+        await refreshPosts();
+    };
 
     return (
-        <PostContext.Provider value={{ posts, refreshPosts, createPost, likePost }}>
+        <PostContext.Provider value={{ posts, refreshPosts, createPost, likePost, deletePost, updatePost }}>
             {children}
         </PostContext.Provider>
     );

@@ -6,7 +6,8 @@ import {
     TextInput,
     ActivityIndicator,
     StyleSheet,
-    Alert
+    Alert,
+    Modal
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
@@ -20,11 +21,14 @@ export default function PostDetailScreen() {
     const postId = Number(id);
 
     const { post, loading, refreshPost } = useApiPost(postId);
-    const { comments, loading: commentsLoading, createComment } = useComments(postId);
+    const { comments, loading: commentsLoading, createComment, deleteComment, updateComment } = useComments(postId);
 
     // Local UI state
     const [likes, setLikes] = useState(0);
     const [replyText, setReplyText] = useState("");
+    const [loggedInUserId, setLoggedInUserId] = useState<number | null>(null);
+    const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+    const [editCommentText, setEditCommentText] = useState("");
 
     // Sync likes once post is loaded
     useEffect(() => {
@@ -32,6 +36,22 @@ export default function PostDetailScreen() {
             setLikes(post.likes_count);
         }
     }, [post]);
+
+    // Load logged-in user ID
+    useEffect(() => {
+        const loadLoggedInUser = async () => {
+            const token = await SecureStore.getItemAsync('authToken');
+            const ip = await SecureStore.getItemAsync('serverIp');
+
+            const res = await fetch(`http://${ip}/api/users/profile`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (data.success) setLoggedInUserId(data.user.user_id);
+        };
+        loadLoggedInUser();
+    }, []);
 
     if (loading || !post) {
         return (
@@ -79,6 +99,53 @@ export default function PostDetailScreen() {
         }
 
         Alert.alert("Failed to like post");
+    };
+
+    // --- DELETE COMMENT ---
+    const handleDeleteComment = async (commentId: number) => {
+        Alert.alert(
+            "Delete Comment",
+            "Are you sure you want to delete this comment?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await deleteComment(commentId);
+                            Alert.alert("Success", "Comment deleted");
+                        } catch (err) {
+                            Alert.alert("Error", "Failed to delete comment");
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    // --- EDIT COMMENT ---
+    const handleEditComment = (commentId: number, currentText: string) => {
+        setEditingCommentId(commentId);
+        setEditCommentText(currentText);
+    };
+
+    const handleSaveEditComment = async () => {
+        if (!editCommentText.trim()) {
+            Alert.alert("Error", "Comment cannot be empty");
+            return;
+        }
+
+        if (editingCommentId) {
+            try {
+                await updateComment(editingCommentId, editCommentText);
+                setEditingCommentId(null);
+                setEditCommentText("");
+                Alert.alert("Success", "Comment updated");
+            } catch (err) {
+                Alert.alert("Error", "Failed to update comment");
+            }
+        }
     };
 
     return (
@@ -171,6 +238,24 @@ export default function PostDetailScreen() {
                             <View style={styles.commentBody}>
                                 <Text style={styles.commentAuthor}>{comment.author_name}</Text>
                                 <Text>{comment.content}</Text>
+                                
+                                {/* Edit/Delete buttons for comment owner */}
+                                {loggedInUserId === comment.user_id && (
+                                    <View style={styles.commentActions}>
+                                        <Pressable
+                                            style={styles.commentEditButton}
+                                            onPress={() => handleEditComment(comment.comment_id, comment.content)}
+                                        >
+                                            <Text style={styles.commentEditText}>✏️ Edit</Text>
+                                        </Pressable>
+                                        <Pressable
+                                            style={styles.commentDeleteButton}
+                                            onPress={() => handleDeleteComment(comment.comment_id)}
+                                        >
+                                            <Text style={styles.commentDeleteText}>🗑️ Delete</Text>
+                                        </Pressable>
+                                    </View>
+                                )}
                             </View>
                         </View>
                     ))
@@ -178,6 +263,39 @@ export default function PostDetailScreen() {
                     <Text style={styles.noComments}>No comments yet.</Text>
                 )}
             </View>
+
+            {/* Edit Comment Modal */}
+            <Modal visible={editingCommentId !== null} animationType="slide" transparent={true}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Edit Comment</Text>
+                        <TextInput
+                            style={styles.editInput}
+                            value={editCommentText}
+                            onChangeText={setEditCommentText}
+                            multiline
+                            placeholder="Edit your comment..."
+                        />
+                        <View style={styles.modalButtons}>
+                            <Pressable
+                                style={[styles.modalButton, styles.cancelButton]}
+                                onPress={() => {
+                                    setEditingCommentId(null);
+                                    setEditCommentText("");
+                                }}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[styles.modalButton, styles.saveButton]}
+                                onPress={handleSaveEditComment}
+                            >
+                                <Text style={styles.saveButtonText}>Save</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -227,4 +345,82 @@ const styles = StyleSheet.create({
     commentBody: { flex: 1 },
     commentAuthor: { fontWeight: "bold", fontSize: 14, marginBottom: 2 },
     noComments: { fontStyle: "italic", color: "#657786", marginVertical: 8 },
+    commentActions: {
+        flexDirection: "row",
+        marginTop: 8,
+        gap: 8,
+    },
+    commentEditButton: {
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        backgroundColor: "#4A90E2",
+        borderRadius: 4,
+    },
+    commentEditText: {
+        color: "white",
+        fontSize: 12,
+        fontWeight: "600",
+    },
+    commentDeleteButton: {
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        backgroundColor: "#E74C3C",
+        borderRadius: 4,
+    },
+    commentDeleteText: {
+        color: "white",
+        fontSize: 12,
+        fontWeight: "600",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    modalContent: {
+        backgroundColor: "white",
+        borderRadius: 12,
+        padding: 20,
+        width: "90%",
+        maxWidth: 400,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 16,
+    },
+    editInput: {
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 8,
+        padding: 12,
+        minHeight: 80,
+        textAlignVertical: "top",
+        marginBottom: 16,
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: 12,
+    },
+    modalButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+    },
+    cancelButton: {
+        backgroundColor: "#95a5a6",
+    },
+    cancelButtonText: {
+        color: "white",
+        fontWeight: "600",
+    },
+    saveButton: {
+        backgroundColor: "#4A90E2",
+    },
+    saveButtonText: {
+        color: "white",
+        fontWeight: "600",
+    },
 });

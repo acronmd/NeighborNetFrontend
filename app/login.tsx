@@ -80,6 +80,10 @@ export default function LoginScreen() {
             <Pressable style={styles.button} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Log In</Text>
             </Pressable>
+
+            <Pressable onPress={() => router.push("/signup")} style={styles.linkContainer}>
+                <Text style={styles.linkText}>Don't have an account? Sign up</Text>
+            </Pressable>
         </View>
     );
 }
@@ -121,5 +125,13 @@ const styles = StyleSheet.create({
         color: "red",
         marginBottom: 12,
         textAlign: "center",
+    },
+    linkContainer: {
+        marginTop: 20,
+        alignItems: "center",
+    },
+    linkText: {
+        color: "#4A90E2",
+        fontSize: 16,
     },
 });

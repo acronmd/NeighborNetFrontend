@@ -2,7 +2,7 @@ import { EventType, useEvents } from "@/app/data/demoEventData";
 import { api } from "@/app/lib/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { BackHandler, Pressable, StyleSheet, Text, View } from "react-native";
+import { BackHandler, Pressable, StyleSheet, Text, View, Alert } from "react-native";
 
 export default function EventDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -13,6 +13,8 @@ export default function EventDetailScreen() {
     const event = events.find((e: EventType & { event_id: number }) => e.event_id === eventId);
 
     const [authorName, setAuthorName] = useState<string | null>(null);
+    const [isAttending, setIsAttending] = useState(false);
+    const [attendeeCount, setAttendeeCount] = useState(event?.current_attendees ?? 0);
 
     useEffect(() => {
         const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -35,7 +37,43 @@ export default function EventDetailScreen() {
             }
         };
         fetchPost();
+        checkAttendanceStatus();
     }, [event]);
+
+    const checkAttendanceStatus = async () => {
+        try {
+            const data = await api(`/api/events/${eventId}/attendees`);
+            // Assuming backend returns list of attendees
+            // Check if current user is in the list
+            setAttendeeCount(data.attendees?.length ?? event?.current_attendees ?? 0);
+        } catch (err) {
+            console.error("Failed to check attendance:", err);
+        }
+    };
+
+    const handleRSVP = async () => {
+        try {
+            if (isAttending) {
+                // Cancel RSVP
+                await api(`/api/events/${eventId}/attend`, {
+                    method: "DELETE",
+                });
+                setIsAttending(false);
+                setAttendeeCount(prev => Math.max(0, prev - 1));
+                Alert.alert("Success", "RSVP cancelled");
+            } else {
+                // RSVP to event
+                await api(`/api/events/${eventId}/attend`, {
+                    method: "POST",
+                });
+                setIsAttending(true);
+                setAttendeeCount(prev => prev + 1);
+                Alert.alert("Success", "You're attending this event!");
+            }
+        } catch (err: any) {
+            Alert.alert("Error", err.message || "Failed to update RSVP");
+        }
+    };
 
     if (!event) {
         return (
@@ -67,18 +105,18 @@ export default function EventDetailScreen() {
 
                 {/* ATTENDING */}
                 <Text style={styles.attending}>
-                    👥 {event.current_attendees ?? 0} / {event.max_attendees ?? '—'}
+                    👥 {attendeeCount} / {event.max_attendees ?? '—'}
                 </Text>
 
                 {/* BUTTONS */}
                 <View style={styles.buttons}>
                     <Pressable
-                        style={styles.rsvpBtn}
-                        onPress={() => {
-                            // TODO: Implement RSVP functionality here if needed
-                        }}
+                        style={[styles.rsvpBtn, isAttending && styles.rsvpBtnActive]}
+                        onPress={handleRSVP}
                     >
-                        <Text style={styles.rsvpText}>RSVP</Text>
+                        <Text style={styles.rsvpText}>
+                            {isAttending ? "✓ Attending" : "RSVP"}
+                        </Text>
                     </Pressable>
                 </View>
             </View>
@@ -109,5 +147,6 @@ const styles = StyleSheet.create({
     attending: { marginTop: 16, fontSize: 16, color: "#B8BED0", fontWeight: "600", textAlign: "center" },
     buttons: { flexDirection: "row", marginTop: 20, justifyContent: "space-between" },
     rsvpBtn: { flex: 1, paddingVertical: 12, borderRadius: 30, backgroundColor: "white", alignItems: "center" },
+    rsvpBtnActive: { backgroundColor: "#4A90E2" },
     rsvpText: { color: "#2E3347", fontWeight: "700" },
 });

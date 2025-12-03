@@ -42,30 +42,31 @@ export default function RootLayout() {
             {/*    }}*/}
             {/*/>*/}
             <Tabs.Screen
-                name="feed" // now a proper tab child
+                name="feed"
                 options={{
-                    title: 'Home',
-                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
+                    title: 'Feed',
+                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
                 }}
             />
             <Tabs.Screen
-                name="create-post" // now a proper tab child
+                name="notifications"
+                options={{
+                    title: "Notifications",
+                    tabBarIcon: ({ color }) => <IconSymbol name="bell.fill" color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="create-post"
                 options={{
                     title: 'Post',
                     tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
                 }}
             />
             <Tabs.Screen
-                name="user-profile" // now a proper tab child
-                options={{
-                    title: 'Profile',
-                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
-                }}
-            />
-            <Tabs.Screen
-                name="event-feed" // feed tab
+                name="event-feed"
                 options={{
                     title: 'Events',
+                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
                     headerRight: () => (
                         <TouchableOpacity
                             onPress={() => router.push('/event/newEvent')}
@@ -74,6 +75,20 @@ export default function RootLayout() {
                             <Text style={{ fontSize: 28, fontWeight: 'bold' }}>+</Text>
                         </TouchableOpacity>
                     ),
+                }}
+            />
+            <Tabs.Screen
+                name="badges"
+                options={{
+                    title: 'Badges',
+                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="trophy.fill" color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="user-profile"
+                options={{
+                    title: 'Profile',
+                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
                 }}
             />
         </Tabs>

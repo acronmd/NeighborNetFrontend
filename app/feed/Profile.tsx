@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Image, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { usePosts } from '@/app/data/demoPostData';
 
@@ -31,6 +32,8 @@ export default function Profile() {
     const [loading, setLoading] = useState(true);
     const [isEditing, setEditing] = useState(false);
     const [bio, setBio] = useState("");
+    const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     // Load logged-in user ID from /profile
     useEffect(() => {
@@ -68,6 +71,7 @@ export default function Profile() {
                 if (data.success) {
                     setUser(data.user);
                     setBio(data.user.bio ?? '');
+                    setProfileImage(data.user.profile_image ?? null);
                 }
             } catch (err) {
                 console.error(err);
@@ -113,12 +117,96 @@ export default function Profile() {
         }
     }
 
+    const pickImage = async () => {
+        // Request permissions
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'We need camera roll permissions to upload a profile picture.');
+            return;
+        }
+
+        // Launch image picker
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+        });
+
+        if (!result.canceled && result.assets[0]) {
+            await uploadProfileImage(result.assets[0].uri);
+        }
+    };
+
+    const uploadProfileImage = async (imageUri: string) => {
+        setUploadingImage(true);
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const ip = await SecureStore.getItemAsync("serverIp");
+
+            // Create form data
+            const formData = new FormData();
+            const filename = imageUri.split('/').pop() || 'profile.jpg';
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+            formData.append('profile_image', {
+                uri: imageUri,
+                name: filename,
+                type: type,
+            } as any);
+
+            const res = await fetch(`http://${ip}/api/users/profile/image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            const data = await res.json();
+
+            if (data.success && data.image_url) {
+                setProfileImage(data.image_url);
+                Alert.alert('Success', 'Profile picture updated!');
+            } else {
+                Alert.alert('Error', data.message || 'Failed to upload image');
+            }
+        } catch (err) {
+            console.error(err);
+            Alert.alert('Error', 'Failed to upload profile picture');
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
     return (
         <ScrollView style={styles.container}>
             <View style={styles.headerCenter}>
-                <View style={styles.avatar}>
-                    <Text style={styles.avatarLetter}>{user.name[0]}</Text>
-                </View>
+                <TouchableOpacity 
+                    style={styles.avatarContainer} 
+                    onPress={isSelf ? pickImage : undefined}
+                    disabled={!isSelf || uploadingImage}
+                >
+                    {profileImage ? (
+                        <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+                    ) : (
+                        <View style={styles.avatar}>
+                            <Text style={styles.avatarLetter}>{user.name[0]}</Text>
+                        </View>
+                    )}
+                    {isSelf && (
+                        <View style={styles.editImageBadge}>
+                            <Text style={styles.editImageText}>📷</Text>
+                        </View>
+                    )}
+                    {uploadingImage && (
+                        <View style={styles.uploadingOverlay}>
+                            <ActivityIndicator color="white" />
+                        </View>
+                    )}
+                </TouchableOpacity>
 
                 <Text style={styles.name}>{user.display_name}</Text>
                 <Text style={styles.handle}>@{user.username}</Text>
@@ -171,8 +259,35 @@ export default function Profile() {
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 10 },
     headerCenter: { alignItems: 'center', marginBottom: 20 },
-    avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+    avatarContainer: { position: 'relative', marginBottom: 10 },
+    avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center' },
+    avatarImage: { width: 80, height: 80, borderRadius: 40 },
     avatarLetter: { fontSize: 32, fontWeight: 'bold' },
+    editImageBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#4A90E2',
+        borderRadius: 15,
+        width: 30,
+        height: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'white',
+    },
+    editImageText: { fontSize: 14 },
+    uploadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     name: { fontSize: 20, fontWeight: 'bold' },
     handle: { color: '#555' },
     location: { color: '#888', marginTop: 4 },

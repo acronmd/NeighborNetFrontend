@@ -34,9 +34,24 @@ export function useComments(postId: number) {
         await fetchComments();
     };
 
+    const deleteComment = async (commentId: number) => {
+        await api(`/api/posts/${postId}/comments/${commentId}`, {
+            method: "DELETE",
+        });
+        await fetchComments();
+    };
+
+    const updateComment = async (commentId: number, content: string) => {
+        await api(`/api/posts/${postId}/comments/${commentId}`, {
+            method: "PUT",
+            body: JSON.stringify({ content }),
+        });
+        await fetchComments();
+    };
+
     useEffect(() => {
         fetchComments();
     }, [postId]);
 
-    return { comments, loading, fetchComments, createComment };
+    return { comments, loading, fetchComments, createComment, deleteComment, updateComment };
 }
