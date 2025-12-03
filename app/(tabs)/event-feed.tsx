@@ -1,10 +1,19 @@
-import React from "react";
+import React, {useCallback, useEffect} from "react";
 import { FlatList, View, Text, ActivityIndicator } from "react-native";
 import EventPost from "@/app/feed/EventPost";
-import { useEvents } from "@/app/data/demoEventData"; // your EventProvider file
+import { useEvents } from "@/app/data/demoEventData";
+import {useFocusEffect} from "expo-router";
+import {useIsFocused} from "@react-navigation/core";
 
 export default function EventFeedScreen() {
     const { events, refreshEvents } = useEvents();
+    const isFocused = useIsFocused();
+
+    useEffect(() => {
+        if (isFocused) {
+            refreshEvents();
+        }
+    }, [isFocused]);
 
     if (!events) {
         return (

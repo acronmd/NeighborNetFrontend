@@ -4,6 +4,7 @@ import { api } from "@/app/lib/api";
 import CommentInput from '@/components/ui/CommentInput';
 import CommentList from '@/components/ui/CommentList';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -24,23 +25,19 @@ export default function EventPost({
                                       status,
                                   }: EventPostProps) {
     const router = useRouter();
-    const [replyText, setReplyText] = useState('');
-    const { comments, loading, createComment } = useComments(post_id);
+    const { comments, loading, createComment, fetchComments } = useComments(post_id);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleReply = async () => {
-        if (!replyText.trim()) return;
-        await createComment(replyText.trim());
-        setReplyText('');
-    };
-
-    const handleCreateComment = async (content: string) => {
-        if (!content.trim() || isSubmitting) return;
-            setIsSubmitting(true);
+    // Post comment to event-specific endpoint using stored token/ip
+    const handleReply = async (content?: string) => {
+        const bodyText = (content ?? '').trim();
+        if (!bodyText || isSubmitting) return;
+        setIsSubmitting(true);
         try {
-            await createComment(content.trim()); // the hook will re-fetch comments
+            await createComment(bodyText);
+            if (typeof fetchComments === 'function') await fetchComments();
         } catch (err) {
-            console.error('createComment error', err);
+            console.error('handleReply error', err);
             Alert.alert('Error', 'Could not post comment.');
         } finally {
             setIsSubmitting(false);
@@ -48,6 +45,8 @@ export default function EventPost({
     };
 
     const [authorName, setAuthorName] = useState<string | null>(null);
+    const [authorUsername, setAuthorUsername] = useState<string | null>(null);
+
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -55,6 +54,7 @@ export default function EventPost({
                 const data = await api(`/api/posts/${post_id}`);
                 if (data.success && data.post) {
                     setAuthorName(data.post.author_name);
+                    setAuthorUsername(data.post.username);
                 }
             } catch (err) {
                 console.error(err);
@@ -65,12 +65,20 @@ export default function EventPost({
 
     const dateObj = new Date(event_date);
 
+    // Map API comment shape to local CommentType expected by CommentList
+    const mappedComments = (comments || []).map((c: any) => ({
+        id: c.comment_id,
+        userData: { authorUsername: c.author_name, id: c.user_id },
+        text: c.content,
+        createdAt: c.created_at || new Date().toISOString(),
+    }));
+
     return (
         <View style={styles.card}>
             {/* Right Side Text */}
             <View style={styles.rightContent}>
                 <Text style={styles.title}>{title}</Text>
-                <Text style={styles.host}>Hosted by {authorName} (@userID{organizer_id})</Text>
+                <Text style={styles.host}>Hosted by {authorName} (@{authorUsername})</Text>
 
                 <Text style={styles.location}>{description}</Text>
 
@@ -95,11 +103,11 @@ export default function EventPost({
                     {loading ? (
                         <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                        <CommentList comments={comments} />
+                        <CommentList comments={mappedComments} />
                     )}
 
                     <CommentInput onSubmit={async (text) => {
-                        await handleCreateComment(text);
+                        await handleReply(text);
                     }} />
 
                     {isSubmitting ? <Text style={{ color: '#B8BED0', marginTop: 6 }}>Sending...</Text> : null}

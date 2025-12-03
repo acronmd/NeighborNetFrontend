@@ -208,7 +208,7 @@ export default function Profile() {
                     )}
                 </TouchableOpacity>
 
-                <Text style={styles.name}>{user.display_name}</Text>
+                <Text style={styles.name}>{user.name}</Text>
                 <Text style={styles.handle}>@{user.username}</Text>
                 {user.street && <Text style={styles.location}>{user.street}</Text>}
             </View>
