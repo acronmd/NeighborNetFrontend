@@ -194,8 +194,7 @@ export default function Post({ post }: { post: ApiPost }) {
 
             {/* Header */}
             <View style={styles.header}>
-                <Pressable>
-
+                <Pressable onPress={() => router.push(`/profile/${post.user_id}` as any)}>
                     {/* TEMP USER INFO — until backend returns joined user data */}
                     <Image
                         source={require("@/assets/images/default-avatar.png")}
@@ -203,10 +202,22 @@ export default function Post({ post }: { post: ApiPost }) {
                     />
                 </Pressable>
 
-                <View>
+                <Pressable 
+                    style={styles.userInfo}
+                    onPress={() => router.push(`/profile/${post.user_id}` as any)}
+                >
                     <Text style={styles.displayName}>{post.author_name}</Text>
                     <Text style={styles.username}>@{post.username}</Text>
-                </View>
+                </Pressable>
+
+                {!isOwner && (
+                    <Pressable 
+                        style={styles.followButtonSmall}
+                        onPress={() => router.push(`/profile/${post.user_id}` as any)}
+                    >
+                        <Text style={styles.followButtonSmallText}>View Profile</Text>
+                    </Pressable>
+                )}
             </View>
 
             {/* Content */}
@@ -335,6 +346,21 @@ const styles = StyleSheet.create({
     username: {
         color: "#888",
         fontSize: 14,
+    },
+    userInfo: {
+        flex: 1,
+    },
+    followButtonSmall: {
+        backgroundColor: "#1DA1F2",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        marginLeft: "auto",
+    },
+    followButtonSmallText: {
+        color: "white",
+        fontSize: 12,
+        fontWeight: "600",
     },
     content: {
         fontSize: 16,

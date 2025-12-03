@@ -15,6 +15,7 @@ type ApiUser = {
     bio?: string | null;
     street?: string | null;
     phone?: string | null;
+    profile_image?: string | null;
     verification_status: string;
     profile_visibility: string;
     is_moderator: boolean | number;
@@ -65,6 +66,12 @@ export default function Profile() {
     const [badges, setBadges] = useState<Badge[]>([]);
     const [loadingBadges, setLoadingBadges] = useState(false);
     const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+    
+    // Follow system
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
+    const [loadingFollow, setLoadingFollow] = useState(false);
 
     // Load logged-in user ID from /profile
     useEffect(() => {
@@ -132,6 +139,85 @@ export default function Profile() {
         fetchBadges();
     }, [viewingUserId]);
 
+    // Fetch follow status and counts after user is loaded
+    useEffect(() => {
+        if (!user || !loggedInUserId) return;
+        
+        const isSelf = loggedInUserId === user.user_id;
+        
+        if (!isSelf && viewingUserId) {
+            fetchFollowStatus();
+        }
+        fetchFollowCounts();
+    }, [user, loggedInUserId, viewingUserId]);
+
+    const fetchFollowStatus = async () => {
+        try {
+            const token = await SecureStore.getItemAsync('authToken');
+            const ip = await SecureStore.getItemAsync('serverIp');
+
+            const res = await fetch(`http://${ip}/api/follows/is-following/${viewingUserId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setIsFollowing(data.is_following);
+            }
+        } catch (err) {
+            console.error('Failed to fetch follow status:', err);
+        }
+    };
+
+    const fetchFollowCounts = async () => {
+        try {
+            const token = await SecureStore.getItemAsync('authToken');
+            const ip = await SecureStore.getItemAsync('serverIp');
+
+            const userId = viewingUserId || loggedInUserId;
+            const res = await fetch(`http://${ip}/api/follows/counts/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setFollowersCount(data.followers_count);
+                setFollowingCount(data.following_count);
+            }
+        } catch (err) {
+            console.error('Failed to fetch follow counts:', err);
+        }
+    };
+
+    const handleFollowToggle = async () => {
+        if (!viewingUserId) return;
+        
+        setLoadingFollow(true);
+        try {
+            const token = await SecureStore.getItemAsync('authToken');
+            const ip = await SecureStore.getItemAsync('serverIp');
+
+            const endpoint = isFollowing ? 'unfollow' : 'follow';
+            const res = await fetch(`http://${ip}/api/follows/${endpoint}/${viewingUserId}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setIsFollowing(!isFollowing);
+                setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1);
+            } else {
+                Alert.alert('Error', data.message || 'Failed to update follow status');
+            }
+        } catch (err) {
+            console.error('Failed to toggle follow:', err);
+            Alert.alert('Error', 'Failed to update follow status');
+        } finally {
+            setLoadingFollow(false);
+        }
+    };
+
     // Fetch badges for the viewed user
     const fetchBadges = async () => {
         setLoadingBadges(true);
@@ -160,10 +246,10 @@ export default function Profile() {
         }
     };
 
+    const isSelf = user && loggedInUserId ? loggedInUserId === user.user_id : false;
+
     if (loading) return <View style={styles.center}><ActivityIndicator size="large" /></View>;
     if (!user) return <View style={styles.center}><Text>User not found.</Text></View>;
-
-    const isSelf = loggedInUserId === user.user_id;
 
     const userPosts = Object.values(posts).filter(p => p.user_id === user.user_id);
 
@@ -329,7 +415,7 @@ export default function Profile() {
                 setFixedProfileImage(imageUrl);
                 
                 if (user) {
-                    setUser({ ...user, profile_image: imageUrl });
+                    setUser({ ...user, profile_image: imageUrl } as ApiUser);
                 }
                 
                 Alert.alert('Success', 'Profile picture updated!');
@@ -425,6 +511,40 @@ export default function Profile() {
                     )}
                 </View>
                 <Text style={styles.handle}>@{user.username}</Text>
+                
+                {/* Follow Stats */}
+                <View style={styles.followStats}>
+                    <TouchableOpacity style={styles.stat}>
+                        <Text style={styles.statNumber}>{followersCount}</Text>
+                        <Text style={styles.statLabel}>Followers</Text>
+                    </TouchableOpacity>
+                    <View style={styles.statDivider} />
+                    <TouchableOpacity style={styles.stat}>
+                        <Text style={styles.statNumber}>{followingCount}</Text>
+                        <Text style={styles.statLabel}>Following</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Follow Button for other users */}
+                {!isSelf && (
+                    <TouchableOpacity 
+                        style={[
+                            styles.followButton,
+                            isFollowing && styles.followingButton
+                        ]}
+                        onPress={handleFollowToggle}
+                        disabled={loadingFollow}
+                    >
+                        {loadingFollow ? (
+                            <ActivityIndicator color="white" size="small" />
+                        ) : (
+                            <Text style={styles.followButtonText}>
+                                {isFollowing ? '✓ Following' : '+ Follow'}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+                )}
+                
                 {user.verification_status && (
                     <Text style={[
                         styles.verificationStatus,
@@ -737,6 +857,48 @@ const styles = StyleSheet.create({
         backgroundColor: '#FEF5E7',
     },
     location: { color: '#888', marginTop: 4 },
+    followStats: {
+        flexDirection: 'row',
+        marginTop: 16,
+        marginBottom: 8,
+        alignItems: 'center',
+    },
+    stat: {
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    statNumber: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#14171a',
+    },
+    statLabel: {
+        fontSize: 12,
+        color: '#657786',
+        marginTop: 2,
+    },
+    statDivider: {
+        width: 1,
+        height: 30,
+        backgroundColor: '#e1e8ed',
+    },
+    followButton: {
+        backgroundColor: '#1DA1F2',
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 20,
+        marginTop: 12,
+        minWidth: 120,
+        alignItems: 'center',
+    },
+    followingButton: {
+        backgroundColor: '#657786',
+    },
+    followButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
     section: { marginBottom: 20 },
     sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
     infoRow: {
