@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="a6d2fc8e-b3bf-4b57-bb6d-2e8e64030e3e" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/data/demoEventData.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/data/demoEventData.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/data/demoPostData.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/data/demoPostData.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/event/[id].tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/event/[id].tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/feed/Post.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/feed/Post.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/feed/Profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/feed/Profile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/feed/[id].tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/feed/[id].tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/hooks/useComments.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/hooks/useComments.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/login.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Yael-University&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/acronmd/NeighborNetFrontend.git&quot;,
+    &quot;accountId&quot;: &quot;5889d471-99d3-4333-b130-096dc28a6994&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="36KHJuGXT1YGH26z8t91Gat9cbe" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;com.codeium.enabled&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;running&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/yaelmendez/WebstormProjects/NeighborNetFrontend/node_modules/typescript/lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-a71380e98a7c-JavaScript-WS-252.28238.10" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="a6d2fc8e-b3bf-4b57-bb6d-2e8e64030e3e" name="Changes" comment="" />
+      <created>1764748274182</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1764748274182</updated>
+      <workItem from="1764748275212" duration="99000" />
+      <workItem from="1764748481435" duration="2347000" />
+      <workItem from="1764782958474" duration="611000" />
+      <workItem from="1764783885071" duration="1276000" />
+      <workItem from="1764785176192" duration="174000" />
+      <workItem from="1764785356881" duration="491000" />
+      <workItem from="1764785853365" duration="627000" />
+      <workItem from="1764786486485" duration="80000" />
+      <workItem from="1764786572938" duration="4011000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
