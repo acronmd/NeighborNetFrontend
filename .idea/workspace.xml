@@ -5,14 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a6d2fc8e-b3bf-4b57-bb6d-2e8e64030e3e" name="Changes" comment="goodluck">
-      <change beforePath="$PROJECT_DIR$/app/(tabs)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/_layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(tabs)/badges.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/badges.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(tabs)/create-post.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/create-post.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(tabs)/feed.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/feed.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(tabs)/notifications.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/notifications.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/event/[id].tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/event/[id].tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/feed/Post.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/feed/Post.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/feed/Profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/feed/Profile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/login.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/signup.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/signup.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/types/apiPost.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/types/apiPost.ts" afterDir="false" />
     </list>
@@ -86,7 +82,7 @@
       <workItem from="1764785356881" duration="491000" />
       <workItem from="1764785853365" duration="627000" />
       <workItem from="1764786486485" duration="80000" />
-      <workItem from="1764786572938" duration="9100000" />
+      <workItem from="1764786572938" duration="13788000" />
     </task>
     <task id="LOCAL-00001" summary="goodluck">
       <option name="closed" value="true" />
@@ -104,7 +100,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764791511552</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="goodluck">
+      <option name="closed" value="true" />
+      <created>1764796570721</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1764796570722</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
