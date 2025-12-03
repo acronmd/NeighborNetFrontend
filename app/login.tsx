@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Alert } from "react-native";
-import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router"; // if using expo-router
+import * as SecureStore from "expo-secure-store";
+import React, { useState } from "react";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -80,6 +80,13 @@ export default function LoginScreen() {
             <Pressable style={styles.button} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Log In</Text>
             </Pressable>
+
+            <View style={styles.signupContainer}>
+                <Text style={styles.signupText}>Don&apos;t have an account? </Text>
+                <Pressable onPress={() => router.push('/signup')}>
+                    <Text style={styles.signupLink}>Sign Up</Text>
+                </Pressable>
+            </View>
         </View>
     );
 }
@@ -121,5 +128,20 @@ const styles = StyleSheet.create({
         color: "red",
         marginBottom: 12,
         textAlign: "center",
+    },
+    signupContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    signupText: {
+        color: '#888',
+        fontSize: 14,
+    },
+    signupLink: {
+        color: '#4A90E2',
+        fontWeight: '600',
+        fontSize: 14,
     },
 });
