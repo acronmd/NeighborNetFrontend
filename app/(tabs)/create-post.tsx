@@ -1,11 +1,19 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { usePosts } from '@/app/data/demoPostData';
-import { useState } from 'react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { createPost as apiCreatePost, fetchTags } from '../lib/api';
 
 export default function CreatePostScreen() {
     const { createPost } = usePosts(); // <-- API-based create
     const [content, setContent] = useState("");
+    const [availableTags, setAvailableTags] = useState<Array<{ tag_id: number; name: string; color?: string }>>([]);
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+
+    useEffect(() => {
+        fetchTags()
+            .then(tags => setAvailableTags(tags))
+            .catch(err => console.warn('Failed to fetch tags', err));
+    }, []);
 
     const handlePost = async () => {
         if (!content.trim()) {
@@ -13,13 +21,31 @@ export default function CreatePostScreen() {
             return;
         }
 
+        const payload = {
+            content: content.trim(),
+            post_type: 'general',
+            priority: 'normal',
+            tags: selectedTagIds,
+        };
+
         try {
-            await createPost(content, "general"); // <--- API request
+            // Try to create via backend API
+            await apiCreatePost(payload);
             setContent("");
-            Alert.alert("Post created!");
-        } catch (err: any) {
-            Alert.alert("Error", err.message || "Failed to create post");
-            console.log(err);
+            setSelectedTagIds([]);
+            Alert.alert('Post created!');
+        } catch (apiErr) {
+            console.warn('API create post failed, falling back to demo createPost', apiErr);
+            try {
+                // Fallback to demo/local createPost so UI still updates in demo mode
+                await createPost(content, 'general');
+                setContent('');
+                setSelectedTagIds([]);
+                Alert.alert('Post created (local)');
+            } catch (err: any) {
+                Alert.alert('Error', err.message || 'Failed to create post');
+                console.log(err);
+            }
         }
     };
 
@@ -34,6 +60,30 @@ export default function CreatePostScreen() {
                 multiline
                 placeholder="What's on your mind?"
             />
+
+            {/* Tag selector */}
+            <Text style={{ marginTop: 12, marginBottom: 8, fontWeight: '600' }}>Tags</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {availableTags.map(tag => {
+                    const selected = selectedTagIds.includes(tag.tag_id);
+                    return (
+                        <TouchableOpacity
+                            key={tag.tag_id}
+                            onPress={() => setSelectedTagIds(prev => prev.includes(tag.tag_id) ? prev.filter(x => x !== tag.tag_id) : [...prev, tag.tag_id])}
+                            style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                                borderRadius: 16,
+                                marginRight: 8,
+                                marginBottom: 8,
+                                backgroundColor: selected ? '#333' : (tag.color || '#eee'),
+                            }}
+                        >
+                            <Text style={{ color: selected ? '#fff' : '#000' }}>{tag.name}</Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
 
             <TouchableOpacity onPress={handlePost} style={styles.button}>
                 <Text style={styles.buttonText}>Post</Text>

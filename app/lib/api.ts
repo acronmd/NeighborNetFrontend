@@ -23,3 +23,16 @@ export async function api(path: string, options: RequestInit = {}) {
 
     return res.json();
 }
+
+// fetch all available tags from backend
+export async function fetchTags() {
+    const json = await api('/posts/tags/all', { method: 'GET' });
+    // expected shape: { success: true, tags: [...] }
+    return json.tags || [];
+}
+
+// create a new post with given payload
+export async function createPost(payload: Record<string, any>) {
+    const json = await api('/posts', { method: 'POST', body: JSON.stringify(payload) });
+    return json; // caller can inspect json.post
+}
