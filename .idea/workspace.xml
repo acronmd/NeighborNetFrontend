@@ -4,14 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a6d2fc8e-b3bf-4b57-bb6d-2e8e64030e3e" name="Changes" comment="goodluck">
-      <change beforePath="$PROJECT_DIR$/app/(tabs)/create-post.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/create-post.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/feed/Post.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/feed/Post.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/feed/Profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/feed/Profile.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/login.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/signup.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/signup.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/types/apiPost.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/types/apiPost.ts" afterDir="false" />
-    </list>
+    <list default="true" id="a6d2fc8e-b3bf-4b57-bb6d-2e8e64030e3e" name="Changes" comment="goodluck" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -82,7 +75,7 @@
       <workItem from="1764785356881" duration="491000" />
       <workItem from="1764785853365" duration="627000" />
       <workItem from="1764786486485" duration="80000" />
-      <workItem from="1764786572938" duration="13788000" />
+      <workItem from="1764786572938" duration="17117000" />
     </task>
     <task id="LOCAL-00001" summary="goodluck">
       <option name="closed" value="true" />
@@ -108,7 +101,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764796570722</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="goodluck">
+      <option name="closed" value="true" />
+      <created>1764801837107</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1764801837107</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
