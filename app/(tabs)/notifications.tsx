@@ -55,8 +55,10 @@ export default function NotificationsScreen() {
         try {
             const data = await api('/notifications?limit=50');
             setNotifications(data.notifications || []);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch notifications:', err);
+            // Silently fail - show empty state instead of crashing
+            // User will see "No notifications yet" message
         } finally {
             setLoading(false);
             setRefreshing(false);

@@ -80,8 +80,7 @@ export default function RootLayout() {
             <Tabs.Screen
                 name="badges"
                 options={{
-                    title: 'Badges',
-                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="trophy.fill" color={color} />,
+                    href: null,
                 }}
             />
             <Tabs.Screen

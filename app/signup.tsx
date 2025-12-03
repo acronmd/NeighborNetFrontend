@@ -10,6 +10,7 @@ export default function SignupScreen() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [name, setName] = useState("");
+    const [displayName, setDisplayName] = useState("");
     const [username, setUsername] = useState("");
     const [street, setStreet] = useState("");
     const [error, setError] = useState("");
@@ -19,8 +20,8 @@ export default function SignupScreen() {
         setError("");
 
         // Validation
-        if (!ip || !email || !password || !name || !username) {
-            setError("Required fields: IP, email, password, name, username");
+        if (!ip || !email || !password || !name || !displayName || !username) {
+            setError("Required fields: IP, email, password, name, display name, username");
             return;
         }
 
@@ -44,6 +45,7 @@ export default function SignupScreen() {
                     email,
                     password,
                     name,
+                    display_name: displayName,
                     username,
                     street: street || undefined,
                 }),
@@ -97,7 +99,7 @@ export default function SignupScreen() {
 
                 <TextInput
                     style={styles.input}
-                    placeholder="Name *"
+                    placeholder="Full Name * (e.g., John Doe)"
                     placeholderTextColor="#888"
                     value={name}
                     onChangeText={setName}
@@ -105,7 +107,15 @@ export default function SignupScreen() {
 
                 <TextInput
                     style={styles.input}
-                    placeholder="Username *"
+                    placeholder="Display Name * (e.g., Johnny)"
+                    placeholderTextColor="#888"
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                />
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="Username * (e.g., johndoe)"
                     placeholderTextColor="#888"
                     autoCapitalize="none"
                     value={username}

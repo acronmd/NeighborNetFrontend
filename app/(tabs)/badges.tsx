@@ -73,8 +73,10 @@ export default function BadgesScreen() {
             if (progressData.badges) {
                 setBadges(progressData.badges);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch badges:', err);
+            // Silently fail - show empty state instead of crashing
+            // User will see "No badges yet" message
         } finally {
             setLoading(false);
             setRefreshing(false);

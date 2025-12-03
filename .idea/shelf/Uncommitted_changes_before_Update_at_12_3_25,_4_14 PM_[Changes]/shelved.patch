@@ -1,0 +1,1271 @@
+Index: app/types/apiPost.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>export type ApiPost = {\n    post_id: number;\n    user_id: number;         // because DB returns this\n    content: string;\n    post_type: string;\n    priority: \"normal\" | \"high\" | \"urgent\";\n    is_verified: boolean;\n    media_urls?: string | null;\n    location_lat?: number | null;\n    location_lng?: number | null;\n    visibility_radius: number;\n    likes_count: number;\n    comments_count: number;\n    is_pinned: boolean;\n    status: \"active\" | \"archived\" | \"reported\" | \"removed\";\n    created_at: string;\n    updated_at: string;\n    author_name: string;\n    username: string;\n    display_name: string;\n    author_image: string | null;\n};\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/types/apiPost.ts b/app/types/apiPost.ts
+--- a/app/types/apiPost.ts	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/types/apiPost.ts	(date 1764795196180)
+@@ -6,6 +6,7 @@
+     priority: "normal" | "high" | "urgent";
+     is_verified: boolean;
+     media_urls?: string | null;
++    post_image?: string | null;  // New field for post images
+     location_lat?: number | null;
+     location_lng?: number | null;
+     visibility_radius: number;
+@@ -20,4 +21,3 @@
+     display_name: string;
+     author_image: string | null;
+ };
+-
+Index: app/(tabs)/feed.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import React from \"react\";\nimport { usePosts } from \"../data/demoPostData\";\nimport {FlatList, Pressable, View, Text} from \"react-native\";\nimport Post from \"@/app/feed/Post\";\nimport {useFocusEffect} from \"expo-router\";\n\nexport default function FeedScreen() {\n    const { posts, refreshPosts, likePost } = usePosts();\n\n    useFocusEffect(\n        React.useCallback(() => {\n            refreshPosts();\n        }, [])\n    );\n\n    return (\n        <FlatList\n            data={posts}        // array of ApiPost\n            keyExtractor={(item) => item.post_id.toString()}\n            renderItem={({ item }) => <Post post={item} />}\n            contentContainerStyle={{ paddingBottom: 60 }}\n        />\n    );\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/(tabs)/feed.tsx b/app/(tabs)/feed.tsx
+--- a/app/(tabs)/feed.tsx	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/(tabs)/feed.tsx	(date 1764793689467)
+@@ -13,9 +13,12 @@
+         }, [])
+     );
+ 
++    // Filter out event posts since they have their own tab
++    const regularPosts = posts.filter(post => post.post_type !== 'event');
++
+     return (
+         <FlatList
+-            data={posts}        // array of ApiPost
++            data={regularPosts}        // array of ApiPost (excluding events)
+             keyExtractor={(item) => item.post_id.toString()}
+             renderItem={({ item }) => <Post post={item} />}
+             contentContainerStyle={{ paddingBottom: 60 }}
+Index: app/signup.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import React, { useState } from \"react\";\nimport { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView } from \"react-native\";\nimport { useRouter } from \"expo-router\";\n\nexport default function SignupScreen() {\n    const router = useRouter();\n\n    const [ip, setIp] = useState(\"\");\n    const [email, setEmail] = useState(\"\");\n    const [password, setPassword] = useState(\"\");\n    const [confirmPassword, setConfirmPassword] = useState(\"\");\n    const [name, setName] = useState(\"\");\n    const [username, setUsername] = useState(\"\");\n    const [street, setStreet] = useState(\"\");\n    const [error, setError] = useState(\"\");\n    const [loading, setLoading] = useState(false);\n\n    const handleSignup = async () => {\n        setError(\"\");\n\n        // Validation\n        if (!ip || !email || !password || !name || !username) {\n            setError(\"Required fields: IP, email, password, name, username\");\n            return;\n        }\n\n        if (password !== confirmPassword) {\n            setError(\"Passwords do not match\");\n            return;\n        }\n\n        if (password.length < 6) {\n            setError(\"Password must be at least 6 characters\");\n            return;\n        }\n\n        setLoading(true);\n\n        try {\n            const res = await fetch(`http://${ip}/api/auth/register`, {\n                method: \"POST\",\n                headers: { \"Content-Type\": \"application/json\" },\n                body: JSON.stringify({\n                    email,\n                    password,\n                    name,\n                    username,\n                    street: street || undefined,\n                }),\n            });\n\n            const data = await res.json();\n\n            if (!res.ok) {\n                setError(data.message || \"Signup failed\");\n                setLoading(false);\n                return;\n            }\n\n            Alert.alert(\"Success\", \"Account created! Please log in.\", [\n                {\n                    text: \"OK\",\n                    onPress: () => router.replace(\"/login\"),\n                },\n            ]);\n        } catch (err) {\n            console.error(err);\n            setError(\"Network error. Check IP or server status.\");\n            setLoading(false);\n        }\n    };\n\n    return (\n        <ScrollView style={styles.container}>\n            <View style={styles.content}>\n                <Text style={styles.title}>Create Account</Text>\n\n                {error ? <Text style={styles.error}>{error}</Text> : null}\n\n                <TextInput\n                    style={styles.input}\n                    placeholder=\"Backend IP (e.g., 192.168.1.25:5050)\"\n                    placeholderTextColor=\"#888\"\n                    value={ip}\n                    onChangeText={setIp}\n                />\n\n                <TextInput\n                    style={styles.input}\n                    placeholder=\"Email *\"\n                    placeholderTextColor=\"#888\"\n                    autoCapitalize=\"none\"\n                    keyboardType=\"email-address\"\n                    value={email}\n                    onChangeText={setEmail}\n                />\n\n                <TextInput\n                    style={styles.input}\n                    placeholder=\"Name *\"\n                    placeholderTextColor=\"#888\"\n                    value={name}\n                    onChangeText={setName}\n                />\n\n                <TextInput\n                    style={styles.input}\n                    placeholder=\"Username *\"\n                    placeholderTextColor=\"#888\"\n                    autoCapitalize=\"none\"\n                    value={username}\n                    onChangeText={setUsername}\n                />\n\n                <TextInput\n                    style={styles.input}\n                    placeholder=\"Street (Optional)\"\n                    placeholderTextColor=\"#888\"\n                    value={street}\n                    onChangeText={setStreet}\n                />\n\n                <TextInput\n                    style={styles.input}\n                    placeholder=\"Password * (min 6 characters)\"\n                    placeholderTextColor=\"#888\"\n                    secureTextEntry\n                    value={password}\n                    onChangeText={setPassword}\n                />\n\n                <TextInput\n                    style={styles.input}\n                    placeholder=\"Confirm Password *\"\n                    placeholderTextColor=\"#888\"\n                    secureTextEntry\n                    value={confirmPassword}\n                    onChangeText={setConfirmPassword}\n                />\n\n                <Pressable \n                    style={[styles.button, loading && styles.buttonDisabled]} \n                    onPress={handleSignup}\n                    disabled={loading}\n                >\n                    <Text style={styles.buttonText}>\n                        {loading ? \"Creating Account...\" : \"Sign Up\"}\n                    </Text>\n                </Pressable>\n\n                <Pressable onPress={() => router.push(\"/login\")} style={styles.linkContainer}>\n                    <Text style={styles.linkText}>Already have an account? Log in</Text>\n                </Pressable>\n            </View>\n        </ScrollView>\n    );\n}\n\nconst styles = StyleSheet.create({\n    container: {\n        flex: 1,\n        backgroundColor: \"#111\",\n    },\n    content: {\n        padding: 24,\n        paddingTop: 60,\n    },\n    title: {\n        fontSize: 28,\n        fontWeight: \"bold\",\n        color: \"white\",\n        marginBottom: 24,\n        textAlign: \"center\",\n    },\n    input: {\n        backgroundColor: \"#222\",\n        color: \"white\",\n        padding: 12,\n        marginBottom: 12,\n        borderRadius: 8,\n    },\n    button: {\n        backgroundColor: \"#4A90E2\",\n        padding: 14,\n        borderRadius: 8,\n        marginTop: 12,\n    },\n    buttonDisabled: {\n        opacity: 0.6,\n    },\n    buttonText: {\n        textAlign: \"center\",\n        color: \"white\",\n        fontWeight: \"bold\",\n        fontSize: 16,\n    },\n    error: {\n        color: \"red\",\n        marginBottom: 12,\n        textAlign: \"center\",\n    },\n    linkContainer: {\n        marginTop: 20,\n        alignItems: \"center\",\n    },\n    linkText: {\n        color: \"#4A90E2\",\n        fontSize: 16,\n    },\n});\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/signup.tsx b/app/signup.tsx
+--- a/app/signup.tsx	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/signup.tsx	(date 1764792137794)
+@@ -10,6 +10,7 @@
+     const [password, setPassword] = useState("");
+     const [confirmPassword, setConfirmPassword] = useState("");
+     const [name, setName] = useState("");
++    const [displayName, setDisplayName] = useState("");
+     const [username, setUsername] = useState("");
+     const [street, setStreet] = useState("");
+     const [error, setError] = useState("");
+@@ -19,8 +20,8 @@
+         setError("");
+ 
+         // Validation
+-        if (!ip || !email || !password || !name || !username) {
+-            setError("Required fields: IP, email, password, name, username");
++        if (!ip || !email || !password || !name || !displayName || !username) {
++            setError("Required fields: IP, email, password, name, display name, username");
+             return;
+         }
+ 
+@@ -44,6 +45,7 @@
+                     email,
+                     password,
+                     name,
++                    display_name: displayName,
+                     username,
+                     street: street || undefined,
+                 }),
+@@ -97,7 +99,7 @@
+ 
+                 <TextInput
+                     style={styles.input}
+-                    placeholder="Name *"
++                    placeholder="Full Name * (e.g., John Doe)"
+                     placeholderTextColor="#888"
+                     value={name}
+                     onChangeText={setName}
+@@ -105,7 +107,15 @@
+ 
+                 <TextInput
+                     style={styles.input}
+-                    placeholder="Username *"
++                    placeholder="Display Name * (e.g., Johnny)"
++                    placeholderTextColor="#888"
++                    value={displayName}
++                    onChangeText={setDisplayName}
++                />
++
++                <TextInput
++                    style={styles.input}
++                    placeholder="Username * (e.g., johndoe)"
+                     placeholderTextColor="#888"
+                     autoCapitalize="none"
+                     value={username}
+Index: app/(tabs)/_layout.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import {router, Tabs} from 'expo-router';\nimport React from 'react';\nimport { HapticTab } from '@/components/haptic-tab';\nimport { IconSymbol } from '@/components/ui/icon-symbol';\nimport { Colors } from '@/constants/theme';\nimport { useColorScheme } from '@/hooks/use-color-scheme';\nimport { TouchableOpacity, Text } from 'react-native';\n\nexport default function RootLayout() {\n    const colorScheme = useColorScheme();\n\n    const Colors = {\n        light: { tint: '#32a852', inactive: '#888', background: '#fff' },\n        dark: { tint: '#32a852', inactive: '#888', background: '#000' },\n    };\n\n\n    return (\n        <Tabs\n            screenOptions={{\n                headerShown: true,\n                tabBarButton: HapticTab,\n                tabBarActiveTintColor: Colors[colorScheme ?? 'dark'].tint,\n                tabBarInactiveTintColor: Colors[colorScheme ?? 'dark'].inactive, // add this\n                tabBarStyle: {\n                    backgroundColor: Colors[colorScheme ?? 'dark'].background, // force background\n                },\n            }}\n        >\n            {/*<Tabs.Screen*/}\n            {/*        name=\"index\"*/}\n            {/*        options={{*/}\n            {/*            title: 'Home',*/}\n            {/*            tabBarIcon: ({ color }) => <IconSymbol size={28} name=\"house.fill\" color={color} />,*/}\n            {/*        }}*/}\n            {/*/>*/}\n            {/*<Tabs.Screen*/}\n            {/*    name=\"explore\"*/}\n            {/*    options={{*/}\n            {/*        title: 'Explore',*/}\n            {/*        tabBarIcon: ({ color }) => <IconSymbol size={28} name=\"paperplane.fill\" color={color} />,*/}\n            {/*    }}*/}\n            {/*/>*/}\n            <Tabs.Screen\n                name=\"feed\"\n                options={{\n                    title: 'Feed',\n                    tabBarIcon: ({ color }) => <IconSymbol size={28} name=\"house.fill\" color={color} />,\n                }}\n            />\n            <Tabs.Screen\n                name=\"notifications\"\n                options={{\n                    title: \"Notifications\",\n                    tabBarIcon: ({ color }) => <IconSymbol name=\"bell.fill\" color={color} />,\n                }}\n            />\n            <Tabs.Screen\n                name=\"create-post\"\n                options={{\n                    title: 'Post',\n                    tabBarIcon: ({ color }) => <IconSymbol size={28} name=\"plus.circle.fill\" color={color} />,\n                }}\n            />\n            <Tabs.Screen\n                name=\"event-feed\"\n                options={{\n                    title: 'Events',\n                    tabBarIcon: ({ color }) => <IconSymbol size={28} name=\"calendar\" color={color} />,\n                    headerRight: () => (\n                        <TouchableOpacity\n                            onPress={() => router.push('/event/newEvent')}\n                            style={{ marginRight: 12 }}\n                        >\n                            <Text style={{ fontSize: 28, fontWeight: 'bold' }}>+</Text>\n                        </TouchableOpacity>\n                    ),\n                }}\n            />\n            <Tabs.Screen\n                name=\"badges\"\n                options={{\n                    title: 'Badges',\n                    tabBarIcon: ({ color }) => <IconSymbol size={28} name=\"trophy.fill\" color={color} />,\n                }}\n            />\n            <Tabs.Screen\n                name=\"user-profile\"\n                options={{\n                    title: 'Profile',\n                    tabBarIcon: ({ color }) => <IconSymbol size={28} name=\"person.fill\" color={color} />,\n                }}\n            />\n        </Tabs>\n    );\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/(tabs)/_layout.tsx b/app/(tabs)/_layout.tsx
+--- a/app/(tabs)/_layout.tsx	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/(tabs)/_layout.tsx	(date 1764792831748)
+@@ -80,8 +80,7 @@
+             <Tabs.Screen
+                 name="badges"
+                 options={{
+-                    title: 'Badges',
+-                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="trophy.fill" color={color} />,
++                    href: null,
+                 }}
+             />
+             <Tabs.Screen
+Index: app/feed/Post.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { useRouter } from \"expo-router\";\nimport * as SecureStore from \"expo-secure-store\";\nimport React, { useState, useEffect } from \"react\";\nimport { Alert, Image, Pressable, StyleSheet, Text, View, TextInput, Modal } from \"react-native\";\nimport { ApiPost } from \"../types/apiPost\";\nimport { usePosts } from \"../data/demoPostData\";\n\nexport default function Post({ post }: { post: ApiPost }) {\n    const router = useRouter();\n    const { deletePost, updatePost } = usePosts();\n\n    const [likes, setLikes] = useState(post.likes_count);\n    const [commentsCount, setCommentsCount] = useState(post.comments_count);\n    const [replyText, setReplyText] = useState(\"\");\n    const [isOwner, setIsOwner] = useState(false);\n    const [isEditing, setIsEditing] = useState(false);\n    const [editContent, setEditContent] = useState(post.content);\n    const [isLiked, setIsLiked] = useState(false);\n\n    // Check if current user is post owner and like status\n    useEffect(() => {\n        const checkOwnership = async () => {\n            const token = await SecureStore.getItemAsync(\"authToken\");\n            const ip = await SecureStore.getItemAsync(\"serverIp\");\n\n            const res = await fetch(`http://${ip}/api/users/profile`, {\n                headers: { Authorization: `Bearer ${token}` }\n            });\n\n            const data = await res.json();\n            if (data.success) {\n                setIsOwner(data.user.user_id === post.user_id);\n            }\n        };\n        checkOwnership();\n        checkLikeStatus();\n    }, [post.user_id]);\n\n    // Check if user already liked this post\n    const checkLikeStatus = async () => {\n        try {\n            const token = await SecureStore.getItemAsync(\"authToken\");\n            const ip = await SecureStore.getItemAsync(\"serverIp\");\n\n            const res = await fetch(`http://${ip}/api/posts/${post.post_id}/like/status`, {\n                headers: { Authorization: `Bearer ${token}` }\n            });\n\n            const data = await res.json();\n            if (data.success) {\n                setIsLiked(data.liked);\n            }\n        } catch (err) {\n            console.error(\"Failed to check like status:\", err);\n        }\n    };\n\n    // --- LIKE POST ---\n    const handleLike = async () => {\n        const token = await SecureStore.getItemAsync(\"authToken\");\n        const ip = await SecureStore.getItemAsync(\"serverIp\");\n\n        // Try LIKE first\n        const likeRes = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {\n            method: \"POST\",\n            headers: { Authorization: `Bearer ${token}` },\n        });\n\n        if (likeRes.ok) {\n            // Successfully liked\n            setLikes((prev) => prev + 1);\n            return;\n        }\n\n        // If already liked --> server returns 409\n        if (likeRes.status === 409) {\n            // Send UNLIKE instead\n            const unlikeRes = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {\n                method: \"DELETE\",\n                headers: { Authorization: `Bearer ${token}` },\n            });\n\n            if (unlikeRes.ok) {\n                setLikes((prev) => prev - 1);\n            } else {\n                Alert.alert(\"Failed to unlike post\");\n            }\n\n            return;\n        }\n\n        Alert.alert(\"Failed to like post\");\n    };\n\n\n    // --- COMMENT ---\n    const handleComment = async () => {\n        if (!replyText.trim()) return;\n\n        const token = await SecureStore.getItemAsync(\"authToken\");\n        const ip = await SecureStore.getItemAsync(\"serverIp\");\n\n        const res = await fetch(`http://${ip}/api/posts/${post.post_id}/comment`, {\n            method: \"POST\",\n            headers: {\n                \"Content-Type\": \"application/json\",\n                Authorization: `Bearer ${token}`,\n            },\n            body: JSON.stringify({ text: replyText }),\n        });\n\n        if (res.ok) {\n            setReplyText(\"\");\n            setCommentsCount((prev) => prev + 1);\n        } else {\n            Alert.alert(\"Failed to comment\");\n        }\n    };\n\n    // --- DELETE POST ---\n    const handleDelete = async () => {\n        Alert.alert(\n            \"Delete Post\",\n            \"Are you sure you want to delete this post?\",\n            [\n                { text: \"Cancel\", style: \"cancel\" },\n                {\n                    text: \"Delete\",\n                    style: \"destructive\",\n                    onPress: async () => {\n                        try {\n                            await deletePost(post.post_id);\n                            Alert.alert(\"Success\", \"Post deleted\");\n                        } catch (err) {\n                            Alert.alert(\"Error\", \"Failed to delete post\");\n                        }\n                    },\n                },\n            ]\n        );\n    };\n\n    // --- EDIT POST ---\n    const handleEdit = () => {\n        setEditContent(post.content);\n        setIsEditing(true);\n    };\n\n    const handleSaveEdit = async () => {\n        if (!editContent.trim()) {\n            Alert.alert(\"Error\", \"Post content cannot be empty\");\n            return;\n        }\n\n        try {\n            await updatePost(post.post_id, editContent);\n            setIsEditing(false);\n            Alert.alert(\"Success\", \"Post updated\");\n        } catch (err) {\n            Alert.alert(\"Error\", \"Failed to update post\");\n        }\n    };\n\n    return (\n        <View style={styles.container}>\n\n            {/* Header */}\n            <View style={styles.header}>\n                <Pressable>\n\n                    {/* TEMP USER INFO — until backend returns joined user data */}\n                    <Image\n                        source={require(\"@/assets/images/default-avatar.png\")}\n                        style={styles.avatar}\n                    />\n                </Pressable>\n\n                <View>\n                    <Text style={styles.displayName}>{post.author_name}</Text>\n                    <Text style={styles.username}>@{post.username}</Text>\n                </View>\n            </View>\n\n            {/* Content */}\n            <Pressable onPress={() => router.push(`/feed/${post.post_id}`)}>\n                <Text style={styles.content}>{post.content}</Text>\n                <View style={styles.separator} />\n            </Pressable>\n\n            {/* Edit/Delete buttons for post owner */}\n            {isOwner && (\n                <View style={styles.ownerActions}>\n                    <Pressable style={styles.editButton} onPress={handleEdit}>\n                        <Text style={styles.editButtonText}>✏\uFE0F Edit</Text>\n                    </Pressable>\n                    <Pressable style={styles.deleteButton} onPress={handleDelete}>\n                        <Text style={styles.deleteButtonText}>\uD83D\uDDD1\uFE0F Delete</Text>\n                    </Pressable>\n                </View>\n            )}\n\n            {/* Actions */}\n            <View style={styles.actions}>\n                <Pressable style={styles.actionButton} onPress={() => router.push(`/feed/${post.post_id}`)}>\n                    <Text style={styles.actionText}>\uD83D\uDCAC {commentsCount} Comments</Text>\n                </Pressable>\n\n                <Pressable style={styles.actionButton} onPress={handleLike}>\n                    <Text style={[styles.actionText, isLiked && styles.liked]}>\n                        {isLiked ? \"❤\uFE0F\" : \"\uD83E\uDD0D\"} {likes}\n                    </Text>\n                </Pressable>\n            </View>\n\n            {/* Reply box\n             <View style={styles.replyContainer}>\n                <TextInput\n                    placeholder=\"Write a reply...\"\n                    style={styles.replyInput}\n                    value={replyText}\n                    onChangeText={setReplyText}\n                />\n                <Pressable onPress={handleComment}>\n                    <Text style={styles.sendButton}>Send</Text>\n                </Pressable>\n            </View>\n             */}\n\n            {/* Edit Modal */}\n            <Modal visible={isEditing} animationType=\"slide\" transparent={true}>\n                <View style={styles.modalOverlay}>\n                    <View style={styles.modalContent}>\n                        <Text style={styles.modalTitle}>Edit Post</Text>\n                        <TextInput\n                            style={styles.editInput}\n                            value={editContent}\n                            onChangeText={setEditContent}\n                            multiline\n                            placeholder=\"Edit your post...\"\n                        />\n                        <View style={styles.modalButtons}>\n                            <Pressable\n                                style={[styles.modalButton, styles.cancelButton]}\n                                onPress={() => setIsEditing(false)}\n                            >\n                                <Text style={styles.cancelButtonText}>Cancel</Text>\n                            </Pressable>\n                            <Pressable\n                                style={[styles.modalButton, styles.saveButton]}\n                                onPress={handleSaveEdit}\n                            >\n                                <Text style={styles.saveButtonText}>Save</Text>\n                            </Pressable>\n                        </View>\n                    </View>\n                </View>\n            </Modal>\n        </View>\n    );\n}\n\nconst styles = StyleSheet.create({\n    container: {\n        padding: 16,\n        backgroundColor: \"#fff\",\n        marginVertical: 10,\n        marginHorizontal: 12,\n        borderRadius: 12,\n        elevation: 3,\n    },\n    header: {\n        flexDirection: \"row\",\n        alignItems: \"center\",\n        marginBottom: 12,\n    },\n    avatar: {\n        width: 50,\n        height: 50,\n        borderRadius: 25,\n        marginRight: 12,\n    },\n    displayName: {\n        fontWeight: \"bold\",\n        fontSize: 16,\n    },\n    username: {\n        color: \"#888\",\n        fontSize: 14,\n    },\n    content: {\n        fontSize: 16,\n        marginBottom: 12,\n    },\n    actions: {\n        flexDirection: \"row\",\n        justifyContent: \"space-around\",\n        marginVertical: 6,\n    },\n    actionButton: {\n        padding: 8,\n        backgroundColor: \"#f2f2f2\",\n        borderRadius: 6,\n    },\n    actionText: {\n        color: \"#1DA1F2\",\n        fontWeight: \"600\",\n    },\n    liked: {\n        color: \"#E74C3C\",\n    },\n    replyContainer: {\n        flexDirection: \"row\",\n        gap: 8,\n    },\n    replyInput: {\n        flex: 1,\n        borderWidth: 1,\n        borderColor: \"#ddd\",\n        borderRadius: 6,\n        padding: 8,\n    },\n    sendButton: {\n        color: \"#1DA1F2\",\n        fontWeight: \"600\",\n        alignSelf: \"center\",\n    },\n    separator: {\n        height: 1,\n        backgroundColor: '#e1e8ed',\n        marginVertical: 4,\n    },\n    ownerActions: {\n        flexDirection: \"row\",\n        justifyContent: \"flex-end\",\n        marginTop: 8,\n        gap: 8,\n    },\n    editButton: {\n        paddingVertical: 6,\n        paddingHorizontal: 12,\n        backgroundColor: \"#4A90E2\",\n        borderRadius: 6,\n    },\n    editButtonText: {\n        color: \"white\",\n        fontWeight: \"600\",\n        fontSize: 14,\n    },\n    deleteButton: {\n        paddingVertical: 6,\n        paddingHorizontal: 12,\n        backgroundColor: \"#E74C3C\",\n        borderRadius: 6,\n    },\n    deleteButtonText: {\n        color: \"white\",\n        fontWeight: \"600\",\n        fontSize: 14,\n    },\n    modalOverlay: {\n        flex: 1,\n        backgroundColor: \"rgba(0,0,0,0.5)\",\n        justifyContent: \"center\",\n        alignItems: \"center\",\n    },\n    modalContent: {\n        backgroundColor: \"white\",\n        borderRadius: 12,\n        padding: 20,\n        width: \"90%\",\n        maxWidth: 400,\n    },\n    modalTitle: {\n        fontSize: 20,\n        fontWeight: \"bold\",\n        marginBottom: 16,\n    },\n    editInput: {\n        borderWidth: 1,\n        borderColor: \"#ddd\",\n        borderRadius: 8,\n        padding: 12,\n        minHeight: 100,\n        textAlignVertical: \"top\",\n        marginBottom: 16,\n    },\n    modalButtons: {\n        flexDirection: \"row\",\n        justifyContent: \"flex-end\",\n        gap: 12,\n    },\n    modalButton: {\n        paddingVertical: 10,\n        paddingHorizontal: 20,\n        borderRadius: 8,\n    },\n    cancelButton: {\n        backgroundColor: \"#95a5a6\",\n    },\n    cancelButtonText: {\n        color: \"white\",\n        fontWeight: \"600\",\n    },\n    saveButton: {\n        backgroundColor: \"#4A90E2\",\n    },\n    saveButtonText: {\n        color: \"white\",\n        fontWeight: \"600\",\n    },\n});\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/feed/Post.tsx b/app/feed/Post.tsx
+--- a/app/feed/Post.tsx	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/feed/Post.tsx	(date 1764795941782)
+@@ -7,7 +7,7 @@
+ 
+ export default function Post({ post }: { post: ApiPost }) {
+     const router = useRouter();
+-    const { deletePost, updatePost } = usePosts();
++    const { deletePost, updatePost, refreshPosts } = usePosts();
+ 
+     const [likes, setLikes] = useState(post.likes_count);
+     const [commentsCount, setCommentsCount] = useState(post.comments_count);
+@@ -69,6 +69,10 @@
+         if (likeRes.ok) {
+             // Successfully liked
+             setLikes((prev) => prev + 1);
++            setIsLiked(true);
++            
++            // Refresh the feed to update like counts
++            await refreshPosts();
+             return;
+         }
+ 
+@@ -82,6 +86,10 @@
+ 
+             if (unlikeRes.ok) {
+                 setLikes((prev) => prev - 1);
++                setIsLiked(false);
++                
++                // Refresh the feed to update like counts
++                await refreshPosts();
+             } else {
+                 Alert.alert("Failed to unlike post");
+             }
+@@ -100,18 +108,21 @@
+         const token = await SecureStore.getItemAsync("authToken");
+         const ip = await SecureStore.getItemAsync("serverIp");
+ 
+-        const res = await fetch(`http://${ip}/api/posts/${post.post_id}/comment`, {
++        const res = await fetch(`http://${ip}/api/posts/${post.post_id}/comments`, {
+             method: "POST",
+             headers: {
+                 "Content-Type": "application/json",
+                 Authorization: `Bearer ${token}`,
+             },
+-            body: JSON.stringify({ text: replyText }),
++            body: JSON.stringify({ content: replyText }),
+         });
+ 
+         if (res.ok) {
+             setReplyText("");
+             setCommentsCount((prev) => prev + 1);
++            
++            // Refresh the feed to update comment counts
++            await refreshPosts();
+         } else {
+             Alert.alert("Failed to comment");
+         }
+@@ -184,6 +195,18 @@
+             {/* Content */}
+             <Pressable onPress={() => router.push(`/feed/${post.post_id}`)}>
+                 <Text style={styles.content}>{post.content}</Text>
++                {post.post_image && (
++                    <Image 
++                        source={{ uri: post.post_image }} 
++                        style={styles.postImage}
++                        resizeMode="cover"
++                        onError={(e) => {
++                            console.error('Post image load error:', e.nativeEvent.error);
++                            console.log('Failed post image URL:', post.post_image);
++                        }}
++                        onLoad={() => console.log('Post image loaded:', post.post_image)}
++                    />
++                )}
+                 <View style={styles.separator} />
+             </Pressable>
+ 
+@@ -329,6 +352,13 @@
+         backgroundColor: '#e1e8ed',
+         marginVertical: 4,
+     },
++    postImage: {
++        width: '100%',
++        height: 250,
++        borderRadius: 12,
++        marginTop: 12,
++        marginBottom: 8,
++    },
+     ownerActions: {
+         flexDirection: "row",
+         justifyContent: "flex-end",
+Index: app/feed/Profile.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import React, { useState, useEffect } from 'react';\nimport { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Image, Alert } from 'react-native';\nimport * as SecureStore from 'expo-secure-store';\nimport * as ImagePicker from 'expo-image-picker';\nimport { useLocalSearchParams, useRouter } from 'expo-router';\nimport { usePosts } from '@/app/data/demoPostData';\n\ntype ApiUser = {\n    user_id: number;\n    email?: string;\n    name: string;\n    username: string;\n    display_name: string;\n    bio?: string | null;\n    street?: string | null;\n    verification_status: string;\n    profile_visibility: string;\n    is_moderator: boolean | number;\n    created_at: string;\n};\n\nexport default function Profile() {\n    const router = useRouter();\n    const { id } = useLocalSearchParams<{ id?: string }>();  // id from route\n    const viewingUserId = id ? Number(id) : null;\n\n    const { posts } = usePosts();\n\n    const [user, setUser] = useState<ApiUser | null>(null);\n    const [loggedInUserId, setLoggedInUserId] = useState<number | null>(null);\n\n    const [loading, setLoading] = useState(true);\n    const [isEditing, setEditing] = useState(false);\n    const [bio, setBio] = useState(\"\");\n    const [profileImage, setProfileImage] = useState<string | null>(null);\n    const [uploadingImage, setUploadingImage] = useState(false);\n\n    // Load logged-in user ID from /profile\n    useEffect(() => {\n        async function loadLoggedInUser() {\n            const token = await SecureStore.getItemAsync('authToken');\n            const ip = await SecureStore.getItemAsync('serverIp');\n\n            const res = await fetch(`http://${ip}/api/users/profile`, {\n                headers: { Authorization: `Bearer ${token}` }\n            });\n\n            const data = await res.json();\n            if (data.success) setLoggedInUserId(data.user.user_id);\n        }\n        loadLoggedInUser();\n    }, []);\n\n    // Fetch user being viewed (self or other)\n    useEffect(() => {\n        async function fetchUser() {\n            try {\n                const token = await SecureStore.getItemAsync('authToken');\n                const ip = await SecureStore.getItemAsync('serverIp');\n\n                const url = viewingUserId\n                    ? `http://${ip}/api/users/public/${viewingUserId}`\n                    : `http://${ip}/api/users/profile`;\n\n                const res = await fetch(url, {\n                    headers: { Authorization: `Bearer ${token}` },\n                });\n\n                const data = await res.json();\n\n                if (data.success) {\n                    setUser(data.user);\n                    setBio(data.user.bio ?? '');\n                    setProfileImage(data.user.profile_image ?? null);\n                }\n            } catch (err) {\n                console.error(err);\n            } finally {\n                setLoading(false);\n            }\n        }\n\n        fetchUser();\n    }, [viewingUserId]);\n\n    if (loading) return <View style={styles.center}><ActivityIndicator size=\"large\" /></View>;\n    if (!user) return <View style={styles.center}><Text>User not found.</Text></View>;\n\n    const isSelf = loggedInUserId === user.user_id;\n\n    const userPosts = Object.values(posts).filter(p => p.user_id === user.user_id);\n\n    async function saveEdits() {\n        try {\n            const token = await SecureStore.getItemAsync(\"authToken\");\n            const ip = await SecureStore.getItemAsync(\"serverIp\");\n\n            const res = await fetch(`http://${ip}/api/users/profile`, {\n                method: 'PUT',\n                headers: {\n                    'Authorization': `Bearer ${token}`,\n                    'Content-Type': 'application/json'\n                },\n                body: JSON.stringify({ bio })\n            });\n\n            const data = await res.json();\n\n            if (data.success) {\n                setUser(prev => prev ? { ...prev, bio } : prev);\n                setEditing(false);\n            } else {\n                alert(\"Failed to update profile\");\n            }\n        } catch {\n            alert(\"Error saving profile\");\n        }\n    }\n\n    const pickImage = async () => {\n        // Request permissions\n        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();\n        \n        if (status !== 'granted') {\n            Alert.alert('Permission Denied', 'We need camera roll permissions to upload a profile picture.');\n            return;\n        }\n\n        // Launch image picker\n        const result = await ImagePicker.launchImageLibraryAsync({\n            mediaTypes: ['images'],\n            allowsEditing: true,\n            aspect: [1, 1],\n            quality: 0.7,\n        });\n\n        if (!result.canceled && result.assets[0]) {\n            await uploadProfileImage(result.assets[0].uri);\n        }\n    };\n\n    const uploadProfileImage = async (imageUri: string) => {\n        setUploadingImage(true);\n        try {\n            const token = await SecureStore.getItemAsync(\"authToken\");\n            const ip = await SecureStore.getItemAsync(\"serverIp\");\n\n            // Create form data\n            const formData = new FormData();\n            const filename = imageUri.split('/').pop() || 'profile.jpg';\n            const match = /\\.(\\w+)$/.exec(filename);\n            const type = match ? `image/${match[1]}` : 'image/jpeg';\n\n            formData.append('profile_image', {\n                uri: imageUri,\n                name: filename,\n                type: type,\n            } as any);\n\n            const res = await fetch(`http://${ip}/api/users/profile/image`, {\n                method: 'POST',\n                headers: {\n                    'Authorization': `Bearer ${token}`,\n                },\n                body: formData,\n            });\n\n            const data = await res.json();\n\n            if (data.success && data.image_url) {\n                setProfileImage(data.image_url);\n                Alert.alert('Success', 'Profile picture updated!');\n            } else {\n                Alert.alert('Error', data.message || 'Failed to upload image');\n            }\n        } catch (err) {\n            console.error(err);\n            Alert.alert('Error', 'Failed to upload profile picture');\n        } finally {\n            setUploadingImage(false);\n        }\n    };\n\n    return (\n        <ScrollView style={styles.container}>\n            <View style={styles.headerCenter}>\n                <TouchableOpacity \n                    style={styles.avatarContainer} \n                    onPress={isSelf ? pickImage : undefined}\n                    disabled={!isSelf || uploadingImage}\n                >\n                    {profileImage ? (\n                        <Image source={{ uri: profileImage }} style={styles.avatarImage} />\n                    ) : (\n                        <View style={styles.avatar}>\n                            <Text style={styles.avatarLetter}>{user.name[0]}</Text>\n                        </View>\n                    )}\n                    {isSelf && (\n                        <View style={styles.editImageBadge}>\n                            <Text style={styles.editImageText}>\uD83D\uDCF7</Text>\n                        </View>\n                    )}\n                    {uploadingImage && (\n                        <View style={styles.uploadingOverlay}>\n                            <ActivityIndicator color=\"white\" />\n                        </View>\n                    )}\n                </TouchableOpacity>\n\n                <Text style={styles.name}>{user.name}</Text>\n                <Text style={styles.handle}>@{user.username}</Text>\n                {user.street && <Text style={styles.location}>{user.street}</Text>}\n            </View>\n\n            <View style={styles.section}>\n                <Text style={styles.sectionTitle}>Bio</Text>\n                {isEditing ? (\n                    <TextInput value={bio} onChangeText={setBio} style={styles.input} multiline />\n                ) : (\n                    <Text>{bio || \"No bio.\"}</Text>\n                )}\n            </View>\n\n            {/* Only show edit button if viewing your own profile */}\n            {isSelf && (\n                <View style={styles.section}>\n                    {isEditing ? (\n                        <TouchableOpacity onPress={saveEdits} style={styles.saveBtn}>\n                            <Text style={styles.saveText}>Save</Text>\n                        </TouchableOpacity>\n                    ) : (\n                        <TouchableOpacity onPress={() => setEditing(true)} style={styles.editBtn}>\n                            <Text style={styles.editText}>Edit Profile</Text>\n                        </TouchableOpacity>\n                    )}\n                </View>\n            )}\n\n            <View style={styles.section}>\n                <Text style={styles.sectionTitle}>Posts</Text>\n                {userPosts.length > 0 ? (\n                    userPosts.map(p => (\n                        <TouchableOpacity key={p.post_id} onPress={() => router.push(`/feed/${p.post_id}`)}>\n                            <Text style={styles.postTitle}>\n                                {p.content.length > 80 ? p.content.slice(0, 80) + '…' : p.content}\n                            </Text>\n                        </TouchableOpacity>\n                    ))\n                ) : (\n                    <Text>No posts yet.</Text>\n                )}\n            </View>\n        </ScrollView>\n    );\n}\n\n\nconst styles = StyleSheet.create({\n    container: { flex: 1, padding: 10 },\n    headerCenter: { alignItems: 'center', marginBottom: 20 },\n    avatarContainer: { position: 'relative', marginBottom: 10 },\n    avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center' },\n    avatarImage: { width: 80, height: 80, borderRadius: 40 },\n    avatarLetter: { fontSize: 32, fontWeight: 'bold' },\n    editImageBadge: {\n        position: 'absolute',\n        bottom: 0,\n        right: 0,\n        backgroundColor: '#4A90E2',\n        borderRadius: 15,\n        width: 30,\n        height: 30,\n        justifyContent: 'center',\n        alignItems: 'center',\n        borderWidth: 2,\n        borderColor: 'white',\n    },\n    editImageText: { fontSize: 14 },\n    uploadingOverlay: {\n        position: 'absolute',\n        top: 0,\n        left: 0,\n        right: 0,\n        bottom: 0,\n        backgroundColor: 'rgba(0,0,0,0.5)',\n        borderRadius: 40,\n        justifyContent: 'center',\n        alignItems: 'center',\n    },\n    name: { fontSize: 20, fontWeight: 'bold' },\n    handle: { color: '#555' },\n    location: { color: '#888', marginTop: 4 },\n    section: { marginBottom: 20 },\n    sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },\n    input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 10, backgroundColor: '#fff' },\n    editBtn: { backgroundColor: '#007bff', padding: 10, borderRadius: 4 },\n    editText: { color: '#fff', textAlign: 'center' },\n    saveBtn: { backgroundColor: '#28a745', padding: 10, borderRadius: 4 },\n    saveText: { color: '#fff', textAlign: 'center' },\n    postTitle: { color: '#007bff', marginBottom: 5 },\n    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },\n});\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/feed/Profile.tsx b/app/feed/Profile.tsx
+--- a/app/feed/Profile.tsx	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/feed/Profile.tsx	(date 1764795918051)
+@@ -1,9 +1,10 @@
+ import React, { useState, useEffect } from 'react';
+-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Image, Alert } from 'react-native';
++import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Image, Alert, Modal, FlatList } from 'react-native';
+ import * as SecureStore from 'expo-secure-store';
+ import * as ImagePicker from 'expo-image-picker';
+ import { useLocalSearchParams, useRouter } from 'expo-router';
+ import { usePosts } from '@/app/data/demoPostData';
++import { api } from '@/app/lib/api';
+ 
+ type ApiUser = {
+     user_id: number;
+@@ -19,6 +20,22 @@
+     created_at: string;
+ };
+ 
++type Badge = {
++    badge_id: number;
++    name: string;
++    description: string;
++    icon: string;
++    category: string;
++    points_value: number;
++    earned_at?: string;
++    is_displayed: boolean;
++    progress?: {
++        current: number;
++        target: number;
++        percentage: number;
++    };
++};
++
+ export default function Profile() {
+     const router = useRouter();
+     const { id } = useLocalSearchParams<{ id?: string }>();  // id from route
+@@ -34,6 +51,9 @@
+     const [bio, setBio] = useState("");
+     const [profileImage, setProfileImage] = useState<string | null>(null);
+     const [uploadingImage, setUploadingImage] = useState(false);
++    const [badges, setBadges] = useState<Badge[]>([]);
++    const [loadingBadges, setLoadingBadges] = useState(false);
++    const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+ 
+     // Load logged-in user ID from /profile
+     useEffect(() => {
+@@ -81,8 +101,37 @@
+         }
+ 
+         fetchUser();
++        fetchBadges();
+     }, [viewingUserId]);
+ 
++    // Fetch badges for the viewed user
++    const fetchBadges = async () => {
++        setLoadingBadges(true);
++        try {
++            const token = await SecureStore.getItemAsync("authToken");
++            const ip = await SecureStore.getItemAsync("serverIp");
++
++            const url = viewingUserId
++                ? `http://${ip}/api/badges/user/${viewingUserId}`
++                : `http://${ip}/api/badges/my-badges`;
++
++            const res = await fetch(url, {
++                headers: { Authorization: `Bearer ${token}` }
++            });
++
++            const data = await res.json();
++            if (data.success) {
++                // Only show displayed badges or all badges if viewing own profile
++                const badgesToShow = isSelf ? data.badges : data.badges?.filter((b: Badge) => b.is_displayed);
++                setBadges(badgesToShow || []);
++            }
++        } catch (err) {
++            console.error("Failed to fetch badges:", err);
++        } finally {
++            setLoadingBadges(false);
++        }
++    };
++
+     if (loading) return <View style={styles.center}><ActivityIndicator size="large" /></View>;
+     if (!user) return <View style={styles.center}><Text>User not found.</Text></View>;
+ 
+@@ -167,8 +216,21 @@
+ 
+             const data = await res.json();
+ 
+-            if (data.success && data.image_url) {
+-                setProfileImage(data.image_url);
++            if (data.success) {
++                const imageUrl = data.image_url || data.profile_image || data.url;
++                setProfileImage(imageUrl);
++                
++                // Refresh user data to get updated profile
++                const token = await SecureStore.getItemAsync('authToken');
++                const ip = await SecureStore.getItemAsync('serverIp');
++                const userRes = await fetch(`http://${ip}/api/users/profile`, {
++                    headers: { Authorization: `Bearer ${token}` }
++                });
++                const userData = await userRes.json();
++                if (userData.success && userData.user.profile_image) {
++                    setProfileImage(userData.user.profile_image);
++                }
++                
+                 Alert.alert('Success', 'Profile picture updated!');
+             } else {
+                 Alert.alert('Error', data.message || 'Failed to upload image');
+@@ -181,6 +243,43 @@
+         }
+     };
+ 
++    const toggleBadgeDisplay = async (badgeId: number, currentDisplay: boolean) => {
++        try {
++            await api(`/badges/${badgeId}/display`, {
++                method: 'PATCH',
++                body: JSON.stringify({ is_displayed: !currentDisplay }),
++            });
++            
++            setBadges(prev =>
++                prev.map(b =>
++                    b.badge_id === badgeId ? { ...b, is_displayed: !currentDisplay } : b
++                )
++            );
++            
++            Alert.alert(
++                'Success',
++                !currentDisplay ? 'Badge will be displayed on your profile' : 'Badge hidden from profile'
++            );
++        } catch (err) {
++            Alert.alert('Error', 'Failed to update badge display');
++        }
++    };
++
++    const getBadgeCategoryColor = (category: string): string => {
++        switch (category) {
++            case 'participation':
++                return '#4A90E2';
++            case 'contribution':
++                return '#27AE60';
++            case 'leadership':
++                return '#F39C12';
++            case 'special':
++                return '#9B59B6';
++            default:
++                return '#95A5A6';
++        }
++    };
++
+     return (
+         <ScrollView style={styles.container}>
+             <View style={styles.headerCenter}>
+@@ -190,7 +289,16 @@
+                     disabled={!isSelf || uploadingImage}
+                 >
+                     {profileImage ? (
+-                        <Image source={{ uri: profileImage }} style={styles.avatarImage} />
++                        <Image 
++                            source={{ uri: profileImage }} 
++                            style={styles.avatarImage}
++                            onError={(e) => {
++                                console.error('Profile image load error:', e.nativeEvent.error);
++                                console.log('Failed URL:', profileImage);
++                                setProfileImage(null);
++                            }}
++                            onLoad={() => console.log('Profile image loaded successfully:', profileImage)}
++                        />
+                     ) : (
+                         <View style={styles.avatar}>
+                             <Text style={styles.avatarLetter}>{user.name[0]}</Text>
+@@ -208,8 +316,24 @@
+                     )}
+                 </TouchableOpacity>
+ 
+-                <Text style={styles.name}>{user.name}</Text>
++                <View style={styles.nameContainer}>
++                    <Text style={styles.name}>{user.name}</Text>
++                    {user.verification_status === 'verified' && (
++                        <Text style={styles.verifiedBadge}>✓</Text>
++                    )}
++                </View>
+                 <Text style={styles.handle}>@{user.username}</Text>
++                {user.verification_status && (
++                    <Text style={[
++                        styles.verificationStatus,
++                        user.verification_status === 'verified' && styles.verifiedStatus,
++                        user.verification_status === 'pending' && styles.pendingStatus,
++                    ]}>
++                        {user.verification_status === 'verified' && '✓ Verified'}
++                        {user.verification_status === 'pending' && '⏳ Verification Pending'}
++                        {user.verification_status === 'unverified' && '○ Unverified'}
++                    </Text>
++                )}
+                 {user.street && <Text style={styles.location}>{user.street}</Text>}
+             </View>
+ 
+@@ -237,6 +361,44 @@
+                 </View>
+             )}
+ 
++            {/* Badges Section */}
++            <View style={styles.section}>
++                <Text style={styles.sectionTitle}>Badges ({badges.length})</Text>
++                {loadingBadges ? (
++                    <ActivityIndicator />
++                ) : badges.length > 0 ? (
++                    <View style={styles.badgesGrid}>
++                        {badges.map((badge) => (
++                            <TouchableOpacity
++                                key={badge.badge_id}
++                                style={styles.badgeItem}
++                                onPress={() => setSelectedBadge(badge)}
++                            >
++                                <View style={[styles.badgeIconContainer, { backgroundColor: getBadgeCategoryColor(badge.category) }]}>
++                                    <Text style={styles.badgeIcon}>{badge.icon}</Text>
++                                </View>
++                                <Text style={styles.badgeName} numberOfLines={1}>{badge.name}</Text>
++                                {isSelf && (
++                                    <TouchableOpacity
++                                        style={[styles.badgeToggle, badge.is_displayed && styles.badgeToggleActive]}
++                                        onPress={(e) => {
++                                            e.stopPropagation();
++                                            toggleBadgeDisplay(badge.badge_id, badge.is_displayed);
++                                        }}
++                                    >
++                                        <Text style={styles.badgeToggleText}>
++                                            {badge.is_displayed ? '👁️' : '👁️‍🗨️'}
++                                        </Text>
++                                    </TouchableOpacity>
++                                )}
++                            </TouchableOpacity>
++                        ))}
++                    </View>
++                ) : (
++                    <Text style={styles.noBadges}>No badges earned yet.</Text>
++                )}
++            </View>
++
+             <View style={styles.section}>
+                 <Text style={styles.sectionTitle}>Posts</Text>
+                 {userPosts.length > 0 ? (
+@@ -251,6 +413,54 @@
+                     <Text>No posts yet.</Text>
+                 )}
+             </View>
++
++            {/* Badge Detail Modal */}
++            <Modal
++                visible={selectedBadge !== null}
++                animationType="slide"
++                transparent={true}
++                onRequestClose={() => setSelectedBadge(null)}
++            >
++                <View style={styles.modalOverlay}>
++                    <View style={styles.modalContent}>
++                        {selectedBadge && (
++                            <>
++                                <View
++                                    style={[
++                                        styles.modalIconContainer,
++                                        { backgroundColor: getBadgeCategoryColor(selectedBadge.category) }
++                                    ]}
++                                >
++                                    <Text style={styles.modalIcon}>{selectedBadge.icon}</Text>
++                                </View>
++                                <Text style={styles.modalTitle}>{selectedBadge.name}</Text>
++                                <Text style={styles.modalCategory}>
++                                    {selectedBadge.category.toUpperCase()}
++                                </Text>
++                                <Text style={styles.modalDescription}>{selectedBadge.description}</Text>
++                                
++                                {selectedBadge.earned_at && (
++                                    <View style={styles.modalEarnedInfo}>
++                                        <Text style={styles.modalEarnedText}>
++                                            ✓ Earned on {new Date(selectedBadge.earned_at).toLocaleDateString()}
++                                        </Text>
++                                        <Text style={styles.modalPointsText}>
++                                            Awarded {selectedBadge.points_value} points
++                                        </Text>
++                                    </View>
++                                )}
++
++                                <TouchableOpacity
++                                    style={styles.modalCloseButton}
++                                    onPress={() => setSelectedBadge(null)}
++                                >
++                                    <Text style={styles.modalCloseButtonText}>Close</Text>
++                                </TouchableOpacity>
++                            </>
++                        )}
++                    </View>
++                </View>
++            </Modal>
+         </ScrollView>
+     );
+ }
+@@ -288,8 +498,40 @@
+         justifyContent: 'center',
+         alignItems: 'center',
+     },
++    nameContainer: {
++        flexDirection: 'row',
++        alignItems: 'center',
++        gap: 6,
++    },
+     name: { fontSize: 20, fontWeight: 'bold' },
++    verifiedBadge: {
++        fontSize: 18,
++        color: '#1DA1F2',
++        backgroundColor: '#E8F5FD',
++        borderRadius: 12,
++        width: 24,
++        height: 24,
++        textAlign: 'center',
++        lineHeight: 24,
++    },
+     handle: { color: '#555' },
++    verificationStatus: {
++        fontSize: 13,
++        fontWeight: '600',
++        marginTop: 4,
++        paddingHorizontal: 10,
++        paddingVertical: 4,
++        borderRadius: 12,
++        alignSelf: 'center',
++    },
++    verifiedStatus: {
++        color: '#27AE60',
++        backgroundColor: '#E8F8F0',
++    },
++    pendingStatus: {
++        color: '#F39C12',
++        backgroundColor: '#FEF5E7',
++    },
+     location: { color: '#888', marginTop: 4 },
+     section: { marginBottom: 20 },
+     sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
+@@ -300,4 +542,124 @@
+     saveText: { color: '#fff', textAlign: 'center' },
+     postTitle: { color: '#007bff', marginBottom: 5 },
+     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
++    badgesGrid: {
++        flexDirection: 'row',
++        flexWrap: 'wrap',
++        gap: 12,
++    },
++    badgeItem: {
++        width: 100,
++        alignItems: 'center',
++        padding: 8,
++        backgroundColor: '#f5f8fa',
++        borderRadius: 12,
++        position: 'relative',
++    },
++    badgeIconContainer: {
++        width: 50,
++        height: 50,
++        borderRadius: 25,
++        justifyContent: 'center',
++        alignItems: 'center',
++        marginBottom: 8,
++    },
++    badgeIcon: {
++        fontSize: 28,
++    },
++    badgeName: {
++        fontSize: 12,
++        fontWeight: '600',
++        textAlign: 'center',
++        color: '#14171a',
++    },
++    badgeToggle: {
++        position: 'absolute',
++        top: 4,
++        right: 4,
++        padding: 4,
++        borderRadius: 12,
++        backgroundColor: '#f0f0f0',
++    },
++    badgeToggleActive: {
++        backgroundColor: '#4A90E2',
++    },
++    badgeToggleText: {
++        fontSize: 12,
++    },
++    noBadges: {
++        fontStyle: 'italic',
++        color: '#657786',
++    },
++    modalOverlay: {
++        flex: 1,
++        backgroundColor: 'rgba(0,0,0,0.5)',
++        justifyContent: 'center',
++        alignItems: 'center',
++    },
++    modalContent: {
++        backgroundColor: 'white',
++        borderRadius: 20,
++        padding: 24,
++        width: '85%',
++        maxWidth: 400,
++        alignItems: 'center',
++    },
++    modalIconContainer: {
++        width: 80,
++        height: 80,
++        borderRadius: 40,
++        justifyContent: 'center',
++        alignItems: 'center',
++        marginBottom: 16,
++    },
++    modalIcon: {
++        fontSize: 40,
++    },
++    modalTitle: {
++        fontSize: 22,
++        fontWeight: 'bold',
++        color: '#14171a',
++        marginBottom: 8,
++        textAlign: 'center',
++    },
++    modalCategory: {
++        fontSize: 12,
++        color: '#657786',
++        fontWeight: '600',
++        marginBottom: 16,
++    },
++    modalDescription: {
++        fontSize: 14,
++        color: '#657786',
++        textAlign: 'center',
++        marginBottom: 20,
++        lineHeight: 20,
++    },
++    modalEarnedInfo: {
++        alignItems: 'center',
++        marginBottom: 20,
++    },
++    modalEarnedText: {
++        fontSize: 13,
++        color: '#27AE60',
++        fontWeight: '600',
++        marginBottom: 8,
++    },
++    modalPointsText: {
++        fontSize: 14,
++        color: '#F39C12',
++        fontWeight: 'bold',
++    },
++    modalCloseButton: {
++        backgroundColor: '#4A90E2',
++        paddingVertical: 10,
++        paddingHorizontal: 24,
++        borderRadius: 8,
++        marginTop: 8,
++    },
++    modalCloseButtonText: {
++        color: 'white',
++        fontSize: 14,
++        fontWeight: '600',
++    },
+ });
+Index: app/(tabs)/notifications.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import React, { useState, useEffect } from 'react';\nimport {\n    View,\n    Text,\n    FlatList,\n    StyleSheet,\n    TouchableOpacity,\n    ActivityIndicator,\n    RefreshControl,\n    Alert\n} from 'react-native';\nimport { api } from '../lib/api';\nimport { useRouter } from 'expo-router';\nimport * as SecureStore from 'expo-secure-store';\n\ntype Notification = {\n    notification_id: number;\n    user_id: number;\n    type: string;\n    title: string;\n    message: string;\n    related_id?: number;\n    is_read: boolean;\n    created_at: string;\n};\n\nexport default function NotificationsScreen() {\n    const router = useRouter();\n    const [notifications, setNotifications] = useState<Notification[]>([]);\n    const [loading, setLoading] = useState(true);\n    const [refreshing, setRefreshing] = useState(false);\n\n    useEffect(() => {\n        checkAuthAndFetch();\n    }, []);\n\n    const checkAuthAndFetch = async () => {\n        try {\n            const token = await SecureStore.getItemAsync(\"authToken\");\n            const ip = await SecureStore.getItemAsync(\"serverIp\");\n            \n            if (!token || !ip) {\n                setLoading(false);\n                return;\n            }\n            \n            await fetchNotifications();\n        } catch (err) {\n            console.error('Auth check failed:', err);\n            setLoading(false);\n        }\n    };\n\n    const fetchNotifications = async () => {\n        try {\n            const data = await api('/notifications?limit=50');\n            setNotifications(data.notifications || []);\n        } catch (err) {\n            console.error('Failed to fetch notifications:', err);\n        } finally {\n            setLoading(false);\n            setRefreshing(false);\n        }\n    };\n\n    const handleRefresh = () => {\n        setRefreshing(true);\n        fetchNotifications();\n    };\n\n    const markAsRead = async (notificationId: number) => {\n        try {\n            await api(`/notifications/${notificationId}/read`, {\n                method: 'PATCH',\n            });\n            setNotifications(prev =>\n                prev.map(n =>\n                    n.notification_id === notificationId ? { ...n, is_read: true } : n\n                )\n            );\n        } catch (err) {\n            console.error('Failed to mark as read:', err);\n        }\n    };\n\n    const markAllAsRead = async () => {\n        try {\n            await api('/notifications/read-all', {\n                method: 'PATCH',\n            });\n            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));\n            Alert.alert('Success', 'All notifications marked as read');\n        } catch (err) {\n            Alert.alert('Error', 'Failed to mark all as read');\n        }\n    };\n\n    const deleteNotification = async (notificationId: number) => {\n        try {\n            await api(`/notifications/${notificationId}`, {\n                method: 'DELETE',\n            });\n            setNotifications(prev => prev.filter(n => n.notification_id !== notificationId));\n        } catch (err) {\n            Alert.alert('Error', 'Failed to delete notification');\n        }\n    };\n\n    const clearReadNotifications = async () => {\n        Alert.alert(\n            'Clear Read Notifications',\n            'Are you sure you want to clear all read notifications?',\n            [\n                { text: 'Cancel', style: 'cancel' },\n                {\n                    text: 'Clear',\n                    style: 'destructive',\n                    onPress: async () => {\n                        try {\n                            await api('/notifications/clear-read', {\n                                method: 'DELETE',\n                            });\n                            setNotifications(prev => prev.filter(n => !n.is_read));\n                            Alert.alert('Success', 'Read notifications cleared');\n                        } catch (err) {\n                            Alert.alert('Error', 'Failed to clear notifications');\n                        }\n                    },\n                },\n            ]\n        );\n    };\n\n    const handleNotificationPress = async (notification: Notification) => {\n        // Mark as read\n        if (!notification.is_read) {\n            await markAsRead(notification.notification_id);\n        }\n\n        // Navigate based on type\n        if (notification.type === 'post_like' || notification.type === 'post_comment') {\n            router.push(`/feed/${notification.related_id}`);\n        } else if (notification.type === 'event_rsvp' || notification.type === 'event_reminder') {\n            router.push(`/event/${notification.related_id}`);\n        }\n    };\n\n    const getNotificationIcon = (type: string) => {\n        switch (type) {\n            case 'post_like':\n                return '❤\uFE0F';\n            case 'post_comment':\n                return '\uD83D\uDCAC';\n            case 'event_rsvp':\n            case 'event_reminder':\n                return '\uD83C\uDF89';\n            case 'contact_request':\n                return '\uD83D\uDC65';\n            case 'badge_earned':\n                return '\uD83C\uDFC6';\n            default:\n                return '\uD83D\uDD14';\n        }\n    };\n\n    const renderNotification = ({ item }: { item: Notification }) => (\n        <TouchableOpacity\n            style={[styles.notificationCard, !item.is_read && styles.unreadCard]}\n            onPress={() => handleNotificationPress(item)}\n        >\n            <View style={styles.notificationHeader}>\n                <Text style={styles.notificationIcon}>{getNotificationIcon(item.type)}</Text>\n                <View style={styles.notificationContent}>\n                    <Text style={styles.notificationTitle}>{item.title}</Text>\n                    <Text style={styles.notificationMessage}>{item.message}</Text>\n                    <Text style={styles.notificationTime}>\n                        {new Date(item.created_at).toLocaleString()}\n                    </Text>\n                </View>\n                <TouchableOpacity\n                    style={styles.deleteButton}\n                    onPress={(e) => {\n                        e.stopPropagation();\n                        deleteNotification(item.notification_id);\n                    }}\n                >\n                    <Text style={styles.deleteButtonText}>✕</Text>\n                </TouchableOpacity>\n            </View>\n            {!item.is_read && <View style={styles.unreadBadge} />}\n        </TouchableOpacity>\n    );\n\n    if (loading) {\n        return (\n            <View style={styles.centerContainer}>\n                <ActivityIndicator size=\"large\" color=\"#4A90E2\" />\n            </View>\n        );\n    }\n\n    const unreadCount = notifications.filter(n => !n.is_read).length;\n\n    return (\n        <View style={styles.container}>\n            <View style={styles.header}>\n                <Text style={styles.headerTitle}>Notifications</Text>\n                {unreadCount > 0 && (\n                    <View style={styles.unreadBadgeHeader}>\n                        <Text style={styles.unreadBadgeText}>{unreadCount}</Text>\n                    </View>\n                )}\n            </View>\n\n            {notifications.length > 0 && (\n                <View style={styles.actionButtons}>\n                    <TouchableOpacity\n                        style={styles.actionButton}\n                        onPress={markAllAsRead}\n                        disabled={unreadCount === 0}\n                    >\n                        <Text style={[styles.actionButtonText, unreadCount === 0 && styles.disabledText]}>\n                            ✓ Mark All Read\n                        </Text>\n                    </TouchableOpacity>\n                    <TouchableOpacity style={styles.actionButton} onPress={clearReadNotifications}>\n                        <Text style={styles.actionButtonText}>\uD83D\uDDD1\uFE0F Clear Read</Text>\n                    </TouchableOpacity>\n                </View>\n            )}\n\n            {notifications.length === 0 ? (\n                <View style={styles.emptyContainer}>\n                    <Text style={styles.emptyIcon}>\uD83D\uDD14</Text>\n                    <Text style={styles.emptyText}>\n                        {loading ? 'Loading...' : 'No notifications yet'}\n                    </Text>\n                    <Text style={styles.emptySubtext}>\n                        {loading \n                            ? 'Please wait...'\n                            : 'You\\'ll see notifications here when you get likes, comments, and more'}\n                    </Text>\n                </View>\n            ) : (\n                <FlatList\n                    data={notifications}\n                    renderItem={renderNotification}\n                    keyExtractor={(item) => item.notification_id.toString()}\n                    refreshControl={\n                        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />\n                    }\n                    contentContainerStyle={styles.listContainer}\n                />\n            )}\n        </View>\n    );\n}\n\nconst styles = StyleSheet.create({\n    container: {\n        flex: 1,\n        backgroundColor: '#f5f8fa',\n    },\n    centerContainer: {\n        flex: 1,\n        justifyContent: 'center',\n        alignItems: 'center',\n    },\n    header: {\n        flexDirection: 'row',\n        alignItems: 'center',\n        justifyContent: 'space-between',\n        padding: 16,\n        backgroundColor: 'white',\n        borderBottomWidth: 1,\n        borderBottomColor: '#e1e8ed',\n    },\n    headerTitle: {\n        fontSize: 24,\n        fontWeight: 'bold',\n        color: '#14171a',\n    },\n    unreadBadgeHeader: {\n        backgroundColor: '#E74C3C',\n        borderRadius: 12,\n        minWidth: 24,\n        height: 24,\n        justifyContent: 'center',\n        alignItems: 'center',\n        paddingHorizontal: 8,\n    },\n    unreadBadgeText: {\n        color: 'white',\n        fontSize: 12,\n        fontWeight: 'bold',\n    },\n    actionButtons: {\n        flexDirection: 'row',\n        padding: 12,\n        gap: 12,\n        backgroundColor: 'white',\n        borderBottomWidth: 1,\n        borderBottomColor: '#e1e8ed',\n    },\n    actionButton: {\n        flex: 1,\n        paddingVertical: 8,\n        paddingHorizontal: 12,\n        backgroundColor: '#f5f8fa',\n        borderRadius: 8,\n        alignItems: 'center',\n    },\n    actionButtonText: {\n        color: '#4A90E2',\n        fontWeight: '600',\n        fontSize: 14,\n    },\n    disabledText: {\n        color: '#95a5a6',\n    },\n    listContainer: {\n        padding: 12,\n    },\n    notificationCard: {\n        backgroundColor: 'white',\n        borderRadius: 12,\n        padding: 16,\n        marginBottom: 12,\n        shadowColor: '#000',\n        shadowOffset: { width: 0, height: 2 },\n        shadowOpacity: 0.1,\n        shadowRadius: 4,\n        elevation: 2,\n    },\n    unreadCard: {\n        backgroundColor: '#EBF5FB',\n        borderLeftWidth: 4,\n        borderLeftColor: '#4A90E2',\n    },\n    notificationHeader: {\n        flexDirection: 'row',\n        alignItems: 'flex-start',\n    },\n    notificationIcon: {\n        fontSize: 28,\n        marginRight: 12,\n    },\n    notificationContent: {\n        flex: 1,\n    },\n    notificationTitle: {\n        fontSize: 16,\n        fontWeight: 'bold',\n        color: '#14171a',\n        marginBottom: 4,\n    },\n    notificationMessage: {\n        fontSize: 14,\n        color: '#657786',\n        marginBottom: 4,\n    },\n    notificationTime: {\n        fontSize: 12,\n        color: '#95a5a6',\n    },\n    deleteButton: {\n        padding: 4,\n    },\n    deleteButtonText: {\n        color: '#95a5a6',\n        fontSize: 18,\n        fontWeight: 'bold',\n    },\n    unreadBadge: {\n        position: 'absolute',\n        top: 16,\n        right: 16,\n        width: 8,\n        height: 8,\n        borderRadius: 4,\n        backgroundColor: '#4A90E2',\n    },\n    emptyContainer: {\n        flex: 1,\n        justifyContent: 'center',\n        alignItems: 'center',\n        padding: 32,\n    },\n    emptyIcon: {\n        fontSize: 64,\n        marginBottom: 16,\n    },\n    emptyText: {\n        fontSize: 20,\n        fontWeight: 'bold',\n        color: '#14171a',\n        marginBottom: 8,\n    },\n    emptySubtext: {\n        fontSize: 14,\n        color: '#657786',\n        textAlign: 'center',\n    },\n});\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/(tabs)/notifications.tsx b/app/(tabs)/notifications.tsx
+--- a/app/(tabs)/notifications.tsx	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/(tabs)/notifications.tsx	(date 1764791928081)
+@@ -55,8 +55,10 @@
+         try {
+             const data = await api('/notifications?limit=50');
+             setNotifications(data.notifications || []);
+-        } catch (err) {
++        } catch (err: any) {
+             console.error('Failed to fetch notifications:', err);
++            // Silently fail - show empty state instead of crashing
++            // User will see "No notifications yet" message
+         } finally {
+             setLoading(false);
+             setRefreshing(false);
+Index: app/event/[id].tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { EventType, useEvents } from \"@/app/data/demoEventData\";\nimport { api } from \"@/app/lib/api\";\nimport { useLocalSearchParams, useRouter } from \"expo-router\";\nimport React, { useEffect, useState } from \"react\";\nimport { BackHandler, Pressable, StyleSheet, Text, View } from \"react-native\";\n\nexport default function EventDetailScreen() {\n    const { id } = useLocalSearchParams<{ id: string }>();\n    const router = useRouter();\n    const { events } = useEvents();\n\n    const eventId = Number(id);\n    const event = events.find((e: EventType & { event_id: number }) => e.event_id === eventId);\n\n    const [authorName, setAuthorName] = useState<string | null>(null);\n\n    useEffect(() => {\n        const sub = BackHandler.addEventListener(\"hardwareBackPress\", () => {\n            router.back();\n            return true;\n        });\n        return () => sub.remove();\n    }, []);\n\n    useEffect(() => {\n        if (!event) return;\n        const fetchPost = async () => {\n            try {\n                const data = await api(`/api/posts/${event.post_id}`);\n                if (data.success && data.post) {\n                    setAuthorName(data.post.author_name);\n                }\n            } catch (err) {\n                console.error(err);\n            }\n        };\n        fetchPost();\n    }, [event]);\n\n    if (!event) {\n        return (\n            <View style={styles.centered}>\n                <Text style={{ color: \"white\" }}>Event not found.</Text>\n            </View>\n        );\n    }\n\n    const dateObj = new Date(event.event_date);\n\n    return (\n        <View style={styles.backgroundContainer}>\n            <View style={styles.card}>\n                {/* EVENT INFO */}\n                <Text style={styles.title}>{event.title}</Text>\n                {authorName && (\n                    <Pressable onPress={() => router.push(`/users/${event.organizer_id}`)}>\n                        <Text style={styles.host}>Hosted by {authorName} (@userID{event.organizer_id})</Text>\n                    </Pressable>\n                )}\n\n                <Text style={styles.overview}>{event.description}</Text>\n\n                {event.location && <Text style={styles.location}>{event.location}</Text>}\n                <Text style={styles.date}>\n                    {dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString()}\n                </Text>\n\n                {/* ATTENDING */}\n                <Text style={styles.attending}>\n                    \uD83D\uDC65 {event.current_attendees ?? 0} / {event.max_attendees ?? '—'}\n                </Text>\n\n                {/* BUTTONS */}\n                <View style={styles.buttons}>\n                    <Pressable\n                        style={styles.rsvpBtn}\n                        onPress={() => {\n                            // TODO: Implement RSVP functionality here if needed\n                        }}\n                    >\n                        <Text style={styles.rsvpText}>RSVP</Text>\n                    </Pressable>\n                </View>\n            </View>\n        </View>\n    );\n}\n\nconst styles = StyleSheet.create({\n    backgroundContainer: { flex: 1, backgroundColor: \"#2E3347\" },\n    card: { padding: 20 },\n    centered: { flex: 1, justifyContent: \"center\", alignItems: \"center\" },\n    imageBox: {\n        width: \"100%\",\n        height: 200,\n        marginTop: 10,\n        borderRadius: 20,\n        backgroundColor: \"white\",\n        justifyContent: \"center\",\n        alignItems: \"center\",\n        overflow: \"hidden\",\n    },\n    image: { width: \"100%\", height: \"100%\", resizeMode: \"cover\" },\n    title: { fontSize: 26, fontWeight: \"700\", color: \"white\", marginTop: 16 },\n    host: { color: \"#B8BED0\", marginBottom: 10 },\n    overview: { fontSize: 18, color: \"white\", marginBottom: 15 },\n    location: { fontSize: 15, color: \"white\" },\n    date: { fontSize: 15, color: \"#B8BED0\" },\n    attending: { marginTop: 16, fontSize: 16, color: \"#B8BED0\", fontWeight: \"600\", textAlign: \"center\" },\n    buttons: { flexDirection: \"row\", marginTop: 20, justifyContent: \"space-between\" },\n    rsvpBtn: { flex: 1, paddingVertical: 12, borderRadius: 30, backgroundColor: \"white\", alignItems: \"center\" },\n    rsvpText: { color: \"#2E3347\", fontWeight: \"700\" },\n});\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/event/[id].tsx b/app/event/[id].tsx
+--- a/app/event/[id].tsx	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/event/[id].tsx	(date 1764792708553)
+@@ -2,7 +2,14 @@
+ import { api } from "@/app/lib/api";
+ import { useLocalSearchParams, useRouter } from "expo-router";
+ import React, { useEffect, useState } from "react";
+-import { BackHandler, Pressable, StyleSheet, Text, View } from "react-native";
++import { BackHandler, Pressable, StyleSheet, Text, View, Alert, ScrollView, ActivityIndicator } from "react-native";
++import * as SecureStore from "expo-secure-store";
++
++type Attendee = {
++    user_id: number;
++    name: string;
++    username: string;
++};
+ 
+ export default function EventDetailScreen() {
+     const { id } = useLocalSearchParams<{ id: string }>();
+@@ -13,6 +20,10 @@
+     const event = events.find((e: EventType & { event_id: number }) => e.event_id === eventId);
+ 
+     const [authorName, setAuthorName] = useState<string | null>(null);
++    const [attendees, setAttendees] = useState<Attendee[]>([]);
++    const [isSignedUp, setIsSignedUp] = useState(false);
++    const [loadingAttendees, setLoadingAttendees] = useState(false);
++    const [currentAttendeeCount, setCurrentAttendeeCount] = useState(event?.current_attendees ?? 0);
+ 
+     useEffect(() => {
+         const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+@@ -35,8 +46,129 @@
+             }
+         };
+         fetchPost();
++        fetchAttendees();
++        checkSignUpStatus();
+     }, [event]);
+ 
++    const fetchAttendees = async () => {
++        if (!event) return;
++        setLoadingAttendees(true);
++        try {
++            const token = await SecureStore.getItemAsync("authToken");
++            const ip = await SecureStore.getItemAsync("serverIp");
++
++            const res = await fetch(`http://${ip}/api/events/${event.event_id}/attendees`, {
++                headers: { Authorization: `Bearer ${token}` }
++            });
++
++            const data = await res.json();
++            if (data.success) {
++                setAttendees(data.attendees || []);
++                setCurrentAttendeeCount(data.attendees?.length || 0);
++            }
++        } catch (err) {
++            console.error("Failed to fetch attendees:", err);
++        } finally {
++            setLoadingAttendees(false);
++        }
++    };
++
++    const checkSignUpStatus = async () => {
++        if (!event) return;
++        try {
++            const token = await SecureStore.getItemAsync("authToken");
++            const ip = await SecureStore.getItemAsync("serverIp");
++
++            const res = await fetch(`http://${ip}/api/events/${event.event_id}/signup/status`, {
++                headers: { Authorization: `Bearer ${token}` }
++            });
++
++            const data = await res.json();
++            if (data.success) {
++                setIsSignedUp(data.isSignedUp);
++            }
++        } catch (err) {
++            console.error("Failed to check sign-up status:", err);
++        }
++    };
++
++    const handleSignUp = async () => {
++        if (!event) return;
++
++        // Check if event is at capacity
++        if (event.max_attendees && currentAttendeeCount >= event.max_attendees) {
++            Alert.alert("Event Full", "This event has reached maximum capacity and is no longer accepting sign-ups.");
++            return;
++        }
++
++        try {
++            const token = await SecureStore.getItemAsync("authToken");
++            const ip = await SecureStore.getItemAsync("serverIp");
++
++            const res = await fetch(`http://${ip}/api/events/${event.event_id}/signup`, {
++                method: "POST",
++                headers: { Authorization: `Bearer ${token}` }
++            });
++
++            const data = await res.json();
++
++            if (res.ok && data.success) {
++                setIsSignedUp(true);
++                setCurrentAttendeeCount(prev => prev + 1);
++                Alert.alert("Success", "You've successfully signed up for this event!");
++                await fetchAttendees();
++            } else if (res.status === 409) {
++                Alert.alert("Already Signed Up", "You're already registered for this event.");
++            } else if (res.status === 400 && data.message?.includes("capacity")) {
++                Alert.alert("Event Full", "Sorry, this event has reached maximum capacity.");
++            } else {
++                Alert.alert("Error", data.message || "Failed to sign up for event.");
++            }
++        } catch (err) {
++            console.error("Sign-up error:", err);
++            Alert.alert("Error", "Failed to sign up for event.");
++        }
++    };
++
++    const handleCancelSignUp = async () => {
++        if (!event) return;
++
++        Alert.alert(
++            "Cancel Sign-Up",
++            "Are you sure you want to cancel your registration?",
++            [
++                { text: "No", style: "cancel" },
++                {
++                    text: "Yes",
++                    style: "destructive",
++                    onPress: async () => {
++                        try {
++                            const token = await SecureStore.getItemAsync("authToken");
++                            const ip = await SecureStore.getItemAsync("serverIp");
++
++                            const res = await fetch(`http://${ip}/api/events/${event.event_id}/signup`, {
++                                method: "DELETE",
++                                headers: { Authorization: `Bearer ${token}` }
++                            });
++
++                            if (res.ok) {
++                                setIsSignedUp(false);
++                                setCurrentAttendeeCount(prev => prev - 1);
++                                Alert.alert("Success", "You've cancelled your registration.");
++                                await fetchAttendees();
++                            } else {
++                                Alert.alert("Error", "Failed to cancel registration.");
++                            }
++                        } catch (err) {
++                            console.error("Cancel error:", err);
++                            Alert.alert("Error", "Failed to cancel registration.");
++                        }
++                    }
++                }
++            ]
++        );
++    };
++
+     if (!event) {
+         return (
+             <View style={styles.centered}>
+@@ -46,9 +178,10 @@
+     }
+ 
+     const dateObj = new Date(event.event_date);
++    const isAtCapacity = event.max_attendees && currentAttendeeCount >= event.max_attendees;
+ 
+     return (
+-        <View style={styles.backgroundContainer}>
++        <ScrollView style={styles.backgroundContainer}>
+             <View style={styles.card}>
+                 {/* EVENT INFO */}
+                 <Text style={styles.title}>{event.title}</Text>
+@@ -60,29 +193,70 @@
+ 
+                 <Text style={styles.overview}>{event.description}</Text>
+ 
+-                {event.location && <Text style={styles.location}>{event.location}</Text>}
++                {event.location && <Text style={styles.location}>📍 {event.location}</Text>}
+                 <Text style={styles.date}>
+-                    {dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString()}
++                    📅 {dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString()}
+                 </Text>
+ 
+                 {/* ATTENDING */}
+-                <Text style={styles.attending}>
+-                    👥 {event.current_attendees ?? 0} / {event.max_attendees ?? '—'}
++                <Text style={[styles.attending, isAtCapacity && styles.atCapacity]}>
++                    👥 {currentAttendeeCount} / {event.max_attendees ?? '∞'}
++                    {isAtCapacity && " (FULL)"}
+                 </Text>
+ 
+                 {/* BUTTONS */}
+                 <View style={styles.buttons}>
+-                    <Pressable
+-                        style={styles.rsvpBtn}
+-                        onPress={() => {
+-                            // TODO: Implement RSVP functionality here if needed
+-                        }}
+-                    >
+-                        <Text style={styles.rsvpText}>RSVP</Text>
+-                    </Pressable>
+-                </View>
+-            </View>
+-        </View>
++                    {isSignedUp ? (
++                        <Pressable
++                            style={styles.cancelBtn}
++                            onPress={handleCancelSignUp}
++                        >
++                            <Text style={styles.cancelText}>Cancel Registration</Text>
++                        </Pressable>
++                    ) : (
++                        <Pressable
++                            style={[styles.rsvpBtn, isAtCapacity && styles.disabledBtn]}
++                            onPress={handleSignUp}
++                            disabled={isAtCapacity}
++                        >
++                            <Text style={styles.rsvpText}>
++                                {isAtCapacity ? "Event Full" : "Sign Up"}
++                            </Text>
++                        </Pressable>
++                    )}
++                </View>
++
++                {/* ATTENDEES LIST */}
++                <View style={styles.attendeesSection}>
++                    <Text style={styles.attendeesTitle}>Attendees ({currentAttendeeCount})</Text>
++                    {loadingAttendees ? (
++                        <ActivityIndicator color="white" style={{ marginTop: 10 }} />
++                    ) : attendees.length > 0 ? (
++                        <View style={styles.attendeesList}>
++                            {attendees.map((attendee) => (
++                                <Pressable
++                                    key={attendee.user_id}
++                                    style={styles.attendeeItem}
++                                    onPress={() => router.push(`/users/${attendee.user_id}`)}
++                                >
++                                    <View style={styles.attendeeAvatar}>
++                                        <Text style={styles.attendeeAvatarText}>
++                                            {attendee.name[0].toUpperCase()}
++                                        </Text>
++                                    </View>
++                                    <View style={styles.attendeeInfo}>
++                                        <Text style={styles.attendeeName}>{attendee.name}</Text>
++                                        <Text style={styles.attendeeUsername}>@{attendee.username}</Text>
++                                    </View>
++                                </Pressable>
++                            ))}
++                        </View>
++                    ) : (
++                        <Text style={styles.noAttendees}>No attendees yet. Be the first to sign up!</Text>
++                    )}
++                </View>
++            </View>
++        </ScrollView>
+     );
+ }
+ 
+@@ -104,10 +278,38 @@
+     title: { fontSize: 26, fontWeight: "700", color: "white", marginTop: 16 },
+     host: { color: "#B8BED0", marginBottom: 10 },
+     overview: { fontSize: 18, color: "white", marginBottom: 15 },
+-    location: { fontSize: 15, color: "white" },
+-    date: { fontSize: 15, color: "#B8BED0" },
++    location: { fontSize: 15, color: "white", marginBottom: 8 },
++    date: { fontSize: 15, color: "#B8BED0", marginBottom: 8 },
+     attending: { marginTop: 16, fontSize: 16, color: "#B8BED0", fontWeight: "600", textAlign: "center" },
++    atCapacity: { color: "#E74C3C", fontWeight: "700" },
+     buttons: { flexDirection: "row", marginTop: 20, justifyContent: "space-between" },
+     rsvpBtn: { flex: 1, paddingVertical: 12, borderRadius: 30, backgroundColor: "white", alignItems: "center" },
+     rsvpText: { color: "#2E3347", fontWeight: "700" },
++    disabledBtn: { backgroundColor: "#95a5a6", opacity: 0.6 },
++    cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 30, backgroundColor: "#E74C3C", alignItems: "center" },
++    cancelText: { color: "white", fontWeight: "700" },
++    attendeesSection: { marginTop: 30, paddingTop: 20, borderTopWidth: 1, borderTopColor: "#B8BED0" },
++    attendeesTitle: { fontSize: 20, fontWeight: "700", color: "white", marginBottom: 15 },
++    attendeesList: { gap: 12 },
++    attendeeItem: {
++        flexDirection: "row",
++        alignItems: "center",
++        backgroundColor: "rgba(255,255,255,0.1)",
++        padding: 12,
++        borderRadius: 12,
++    },
++    attendeeAvatar: {
++        width: 40,
++        height: 40,
++        borderRadius: 20,
++        backgroundColor: "#4A90E2",
++        justifyContent: "center",
++        alignItems: "center",
++        marginRight: 12,
++    },
++    attendeeAvatarText: { color: "white", fontWeight: "700", fontSize: 18 },
++    attendeeInfo: { flex: 1 },
++    attendeeName: { fontSize: 16, fontWeight: "600", color: "white" },
++    attendeeUsername: { fontSize: 14, color: "#B8BED0" },
++    noAttendees: { fontSize: 14, color: "#B8BED0", fontStyle: "italic", textAlign: "center", marginTop: 10 },
+ });
+Index: app/(tabs)/badges.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import React, { useState, useEffect } from 'react';\nimport {\n    View,\n    Text,\n    FlatList,\n    StyleSheet,\n    TouchableOpacity,\n    ActivityIndicator,\n    RefreshControl,\n    Alert,\n    Modal\n} from 'react-native';\nimport { api } from '../lib/api';\nimport * as SecureStore from 'expo-secure-store';\n\ntype Badge = {\n    badge_id: number;\n    name: string;\n    description: string;\n    icon: string;\n    category: string;\n    points_value: number;\n    earned_at?: string;\n    is_displayed: boolean;\n    progress?: {\n        current: number;\n        target: number;\n        percentage: number;\n    };\n};\n\nexport default function BadgesScreen() {\n    const [badges, setBadges] = useState<Badge[]>([]);\n    const [myBadges, setMyBadges] = useState<Badge[]>([]);\n    const [loading, setLoading] = useState(true);\n    const [refreshing, setRefreshing] = useState(false);\n    const [selectedTab, setSelectedTab] = useState<'earned' | 'available'>('earned');\n    const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);\n\n    useEffect(() => {\n        checkAuthAndFetch();\n    }, []);\n\n    const checkAuthAndFetch = async () => {\n        try {\n            const token = await SecureStore.getItemAsync(\"authToken\");\n            const ip = await SecureStore.getItemAsync(\"serverIp\");\n            \n            if (!token || !ip) {\n                setLoading(false);\n                return;\n            }\n            \n            await fetchBadges();\n        } catch (err) {\n            console.error('Auth check failed:', err);\n            setLoading(false);\n        }\n    };\n\n    const fetchBadges = async () => {\n        try {\n            const [allBadgesData, myBadgesData, progressData] = await Promise.all([\n                api('/badges'),\n                api('/badges/my-badges'),\n                api('/badges/progress')\n            ]);\n\n            setBadges(allBadgesData.badges || []);\n            setMyBadges(myBadgesData.badges || []);\n            \n            // Merge progress data\n            if (progressData.badges) {\n                setBadges(progressData.badges);\n            }\n        } catch (err) {\n            console.error('Failed to fetch badges:', err);\n        } finally {\n            setLoading(false);\n            setRefreshing(false);\n        }\n    };\n\n    const handleRefresh = () => {\n        setRefreshing(true);\n        fetchBadges();\n    };\n\n    const toggleBadgeDisplay = async (badgeId: number, currentDisplay: boolean) => {\n        try {\n            await api(`/badges/${badgeId}/display`, {\n                method: 'PATCH',\n                body: JSON.stringify({ is_displayed: !currentDisplay }),\n            });\n            \n            setMyBadges(prev =>\n                prev.map(b =>\n                    b.badge_id === badgeId ? { ...b, is_displayed: !currentDisplay } : b\n                )\n            );\n            \n            Alert.alert(\n                'Success',\n                !currentDisplay ? 'Badge will be displayed on your profile' : 'Badge hidden from profile'\n            );\n        } catch (err) {\n            Alert.alert('Error', 'Failed to update badge display');\n        }\n    };\n\n    const getBadgeCategoryColor = (category: string): string => {\n        switch (category) {\n            case 'participation':\n                return '#4A90E2';\n            case 'contribution':\n                return '#27AE60';\n            case 'leadership':\n                return '#F39C12';\n            case 'special':\n                return '#9B59B6';\n            default:\n                return '#95A5A6';\n        }\n    };\n\n    const renderBadge = ({ item }: { item: Badge }) => {\n        const isEarned = !!item.earned_at;\n        const categoryColor = getBadgeCategoryColor(item.category);\n\n        return (\n            <TouchableOpacity\n                style={[\n                    styles.badgeCard,\n                    !isEarned && styles.lockedBadge\n                ]}\n                onPress={() => setSelectedBadge(item)}\n            >\n                <View style={[styles.badgeIconContainer, { backgroundColor: categoryColor }]}>\n                    <Text style={styles.badgeIcon}>{item.icon}</Text>\n                </View>\n                \n                <View style={styles.badgeInfo}>\n                    <Text style={[styles.badgeName, !isEarned && styles.lockedText]}>\n                        {item.name}\n                    </Text>\n                    <Text style={styles.badgeCategory}>{item.category.toUpperCase()}</Text>\n                    \n                    {item.progress && !isEarned && (\n                        <View style={styles.progressContainer}>\n                            <View style={styles.progressBar}>\n                                <View\n                                    style={[\n                                        styles.progressFill,\n                                        { width: `${item.progress.percentage}%`, backgroundColor: categoryColor }\n                                    ]}\n                                />\n                            </View>\n                            <Text style={styles.progressText}>\n                                {item.progress.current} / {item.progress.target}\n                            </Text>\n                        </View>\n                    )}\n                    \n                    {isEarned && (\n                        <View style={styles.earnedContainer}>\n                            <Text style={styles.earnedText}>\n                                ✓ Earned {new Date(item.earned_at!).toLocaleDateString()}\n                            </Text>\n                            <Text style={styles.pointsText}>+{item.points_value} pts</Text>\n                        </View>\n                    )}\n                </View>\n\n                {isEarned && (\n                    <TouchableOpacity\n                        style={[\n                            styles.displayToggle,\n                            item.is_displayed && styles.displayToggleActive\n                        ]}\n                        onPress={(e) => {\n                            e.stopPropagation();\n                            toggleBadgeDisplay(item.badge_id, item.is_displayed);\n                        }}\n                    >\n                        <Text style={styles.displayToggleText}>\n                            {item.is_displayed ? '\uD83D\uDC41\uFE0F' : '\uD83D\uDC41\uFE0F\u200D\uD83D\uDDE8\uFE0F'}\n                        </Text>\n                    </TouchableOpacity>\n                )}\n            </TouchableOpacity>\n        );\n    };\n\n    if (loading) {\n        return (\n            <View style={styles.centerContainer}>\n                <ActivityIndicator size=\"large\" color=\"#4A90E2\" />\n            </View>\n        );\n    }\n\n    const displayData = selectedTab === 'earned' ? myBadges : badges;\n    const earnedCount = myBadges.length;\n    const totalPoints = myBadges.reduce((sum, b) => sum + b.points_value, 0);\n\n    return (\n        <View style={styles.container}>\n            {/* Stats Header */}\n            <View style={styles.statsHeader}>\n                <View style={styles.statBox}>\n                    <Text style={styles.statNumber}>{earnedCount}</Text>\n                    <Text style={styles.statLabel}>Badges Earned</Text>\n                </View>\n                <View style={styles.statDivider} />\n                <View style={styles.statBox}>\n                    <Text style={styles.statNumber}>{totalPoints}</Text>\n                    <Text style={styles.statLabel}>Total Points</Text>\n                </View>\n            </View>\n\n            {/* Tab Selector */}\n            <View style={styles.tabContainer}>\n                <TouchableOpacity\n                    style={[styles.tab, selectedTab === 'earned' && styles.activeTab]}\n                    onPress={() => setSelectedTab('earned')}\n                >\n                    <Text style={[styles.tabText, selectedTab === 'earned' && styles.activeTabText]}>\n                        \uD83C\uDFC6 Earned ({earnedCount})\n                    </Text>\n                </TouchableOpacity>\n                <TouchableOpacity\n                    style={[styles.tab, selectedTab === 'available' && styles.activeTab]}\n                    onPress={() => setSelectedTab('available')}\n                >\n                    <Text style={[styles.tabText, selectedTab === 'available' && styles.activeTabText]}>\n                        \uD83C\uDFAF Available ({badges.length})\n                    </Text>\n                </TouchableOpacity>\n            </View>\n\n            {/* Badges List */}\n            <FlatList\n                data={displayData}\n                renderItem={renderBadge}\n                keyExtractor={(item) => item.badge_id.toString()}\n                contentContainerStyle={styles.listContainer}\n                refreshControl={\n                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />\n                }\n                ListEmptyComponent={\n                    <View style={styles.emptyContainer}>\n                        <Text style={styles.emptyIcon}>\uD83C\uDFC6</Text>\n                        <Text style={styles.emptyText}>\n                            {selectedTab === 'earned'\n                                ? 'No badges earned yet'\n                                : 'No badges available'}\n                        </Text>\n                        <Text style={styles.emptySubtext}>\n                            {selectedTab === 'earned'\n                                ? 'Keep participating to earn your first badge!'\n                                : 'Check back later for new badges'}\n                        </Text>\n                    </View>\n                }\n            />\n\n            {/* Badge Detail Modal */}\n            <Modal\n                visible={selectedBadge !== null}\n                animationType=\"slide\"\n                transparent={true}\n                onRequestClose={() => setSelectedBadge(null)}\n            >\n                <View style={styles.modalOverlay}>\n                    <View style={styles.modalContent}>\n                        {selectedBadge && (\n                            <>\n                                <View\n                                    style={[\n                                        styles.modalIconContainer,\n                                        { backgroundColor: getBadgeCategoryColor(selectedBadge.category) }\n                                    ]}\n                                >\n                                    <Text style={styles.modalIcon}>{selectedBadge.icon}</Text>\n                                </View>\n                                <Text style={styles.modalTitle}>{selectedBadge.name}</Text>\n                                <Text style={styles.modalCategory}>\n                                    {selectedBadge.category.toUpperCase()}\n                                </Text>\n                                <Text style={styles.modalDescription}>{selectedBadge.description}</Text>\n                                \n                                {selectedBadge.earned_at ? (\n                                    <View style={styles.modalEarnedInfo}>\n                                        <Text style={styles.modalEarnedText}>\n                                            ✓ Earned on {new Date(selectedBadge.earned_at).toLocaleDateString()}\n                                        </Text>\n                                        <Text style={styles.modalPointsText}>\n                                            Awarded {selectedBadge.points_value} points\n                                        </Text>\n                                    </View>\n                                ) : selectedBadge.progress && (\n                                    <View style={styles.modalProgressContainer}>\n                                        <Text style={styles.modalProgressLabel}>Your Progress</Text>\n                                        <View style={styles.modalProgressBar}>\n                                            <View\n                                                style={[\n                                                    styles.modalProgressFill,\n                                                    {\n                                                        width: `${selectedBadge.progress.percentage}%`,\n                                                        backgroundColor: getBadgeCategoryColor(selectedBadge.category)\n                                                    }\n                                                ]}\n                                            />\n                                        </View>\n                                        <Text style={styles.modalProgressText}>\n                                            {selectedBadge.progress.current} / {selectedBadge.progress.target} ({selectedBadge.progress.percentage}%)\n                                        </Text>\n                                    </View>\n                                )}\n\n                                <TouchableOpacity\n                                    style={styles.modalCloseButton}\n                                    onPress={() => setSelectedBadge(null)}\n                                >\n                                    <Text style={styles.modalCloseButtonText}>Close</Text>\n                                </TouchableOpacity>\n                            </>\n                        )}\n                    </View>\n                </View>\n            </Modal>\n        </View>\n    );\n}\n\nconst styles = StyleSheet.create({\n    container: {\n        flex: 1,\n        backgroundColor: '#f5f8fa',\n    },\n    centerContainer: {\n        flex: 1,\n        justifyContent: 'center',\n        alignItems: 'center',\n    },\n    statsHeader: {\n        flexDirection: 'row',\n        padding: 20,\n        backgroundColor: 'white',\n        borderBottomWidth: 1,\n        borderBottomColor: '#e1e8ed',\n    },\n    statBox: {\n        flex: 1,\n        alignItems: 'center',\n    },\n    statDivider: {\n        width: 1,\n        backgroundColor: '#e1e8ed',\n        marginHorizontal: 20,\n    },\n    statNumber: {\n        fontSize: 32,\n        fontWeight: 'bold',\n        color: '#4A90E2',\n        marginBottom: 4,\n    },\n    statLabel: {\n        fontSize: 14,\n        color: '#657786',\n    },\n    tabContainer: {\n        flexDirection: 'row',\n        backgroundColor: 'white',\n        borderBottomWidth: 1,\n        borderBottomColor: '#e1e8ed',\n    },\n    tab: {\n        flex: 1,\n        paddingVertical: 16,\n        alignItems: 'center',\n        borderBottomWidth: 3,\n        borderBottomColor: 'transparent',\n    },\n    activeTab: {\n        borderBottomColor: '#4A90E2',\n    },\n    tabText: {\n        fontSize: 16,\n        fontWeight: '600',\n        color: '#657786',\n    },\n    activeTabText: {\n        color: '#4A90E2',\n    },\n    listContainer: {\n        padding: 12,\n    },\n    badgeCard: {\n        flexDirection: 'row',\n        backgroundColor: 'white',\n        borderRadius: 12,\n        padding: 16,\n        marginBottom: 12,\n        shadowColor: '#000',\n        shadowOffset: { width: 0, height: 2 },\n        shadowOpacity: 0.1,\n        shadowRadius: 4,\n        elevation: 2,\n    },\n    lockedBadge: {\n        opacity: 0.6,\n    },\n    badgeIconContainer: {\n        width: 60,\n        height: 60,\n        borderRadius: 30,\n        justifyContent: 'center',\n        alignItems: 'center',\n        marginRight: 16,\n    },\n    badgeIcon: {\n        fontSize: 32,\n    },\n    badgeInfo: {\n        flex: 1,\n    },\n    badgeName: {\n        fontSize: 18,\n        fontWeight: 'bold',\n        color: '#14171a',\n        marginBottom: 4,\n    },\n    lockedText: {\n        color: '#95a5a6',\n    },\n    badgeCategory: {\n        fontSize: 12,\n        color: '#657786',\n        fontWeight: '600',\n        marginBottom: 8,\n    },\n    progressContainer: {\n        marginTop: 8,\n    },\n    progressBar: {\n        height: 8,\n        backgroundColor: '#e1e8ed',\n        borderRadius: 4,\n        overflow: 'hidden',\n        marginBottom: 4,\n    },\n    progressFill: {\n        height: '100%',\n        borderRadius: 4,\n    },\n    progressText: {\n        fontSize: 12,\n        color: '#657786',\n    },\n    earnedContainer: {\n        flexDirection: 'row',\n        justifyContent: 'space-between',\n        alignItems: 'center',\n    },\n    earnedText: {\n        fontSize: 12,\n        color: '#27AE60',\n        fontWeight: '600',\n    },\n    pointsText: {\n        fontSize: 14,\n        color: '#F39C12',\n        fontWeight: 'bold',\n    },\n    displayToggle: {\n        padding: 8,\n        borderRadius: 8,\n        backgroundColor: '#f5f8fa',\n    },\n    displayToggleActive: {\n        backgroundColor: '#4A90E2',\n    },\n    displayToggleText: {\n        fontSize: 20,\n    },\n    emptyContainer: {\n        flex: 1,\n        justifyContent: 'center',\n        alignItems: 'center',\n        padding: 32,\n        marginTop: 60,\n    },\n    emptyIcon: {\n        fontSize: 64,\n        marginBottom: 16,\n    },\n    emptyText: {\n        fontSize: 20,\n        fontWeight: 'bold',\n        color: '#14171a',\n        marginBottom: 8,\n    },\n    emptySubtext: {\n        fontSize: 14,\n        color: '#657786',\n        textAlign: 'center',\n    },\n    modalOverlay: {\n        flex: 1,\n        backgroundColor: 'rgba(0,0,0,0.5)',\n        justifyContent: 'center',\n        alignItems: 'center',\n    },\n    modalContent: {\n        backgroundColor: 'white',\n        borderRadius: 20,\n        padding: 24,\n        width: '85%',\n        maxWidth: 400,\n        alignItems: 'center',\n    },\n    modalIconContainer: {\n        width: 100,\n        height: 100,\n        borderRadius: 50,\n        justifyContent: 'center',\n        alignItems: 'center',\n        marginBottom: 16,\n    },\n    modalIcon: {\n        fontSize: 48,\n    },\n    modalTitle: {\n        fontSize: 24,\n        fontWeight: 'bold',\n        color: '#14171a',\n        marginBottom: 8,\n        textAlign: 'center',\n    },\n    modalCategory: {\n        fontSize: 14,\n        color: '#657786',\n        fontWeight: '600',\n        marginBottom: 16,\n    },\n    modalDescription: {\n        fontSize: 16,\n        color: '#657786',\n        textAlign: 'center',\n        marginBottom: 20,\n        lineHeight: 24,\n    },\n    modalEarnedInfo: {\n        alignItems: 'center',\n        marginBottom: 20,\n    },\n    modalEarnedText: {\n        fontSize: 14,\n        color: '#27AE60',\n        fontWeight: '600',\n        marginBottom: 8,\n    },\n    modalPointsText: {\n        fontSize: 16,\n        color: '#F39C12',\n        fontWeight: 'bold',\n    },\n    modalProgressContainer: {\n        width: '100%',\n        marginBottom: 20,\n    },\n    modalProgressLabel: {\n        fontSize: 14,\n        color: '#657786',\n        fontWeight: '600',\n        marginBottom: 8,\n        textAlign: 'center',\n    },\n    modalProgressBar: {\n        height: 12,\n        backgroundColor: '#e1e8ed',\n        borderRadius: 6,\n        overflow: 'hidden',\n        marginBottom: 8,\n    },\n    modalProgressFill: {\n        height: '100%',\n        borderRadius: 6,\n    },\n    modalProgressText: {\n        fontSize: 14,\n        color: '#657786',\n        textAlign: 'center',\n    },\n    modalCloseButton: {\n        backgroundColor: '#4A90E2',\n        paddingVertical: 12,\n        paddingHorizontal: 32,\n        borderRadius: 8,\n        marginTop: 8,\n    },\n    modalCloseButtonText: {\n        color: 'white',\n        fontSize: 16,\n        fontWeight: '600',\n    },\n});\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/(tabs)/badges.tsx b/app/(tabs)/badges.tsx
+--- a/app/(tabs)/badges.tsx	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/(tabs)/badges.tsx	(date 1764791942673)
+@@ -73,8 +73,10 @@
+             if (progressData.badges) {
+                 setBadges(progressData.badges);
+             }
+-        } catch (err) {
++        } catch (err: any) {
+             console.error('Failed to fetch badges:', err);
++            // Silently fail - show empty state instead of crashing
++            // User will see "No badges yet" message
+         } finally {
+             setLoading(false);
+             setRefreshing(false);
+Index: app/(tabs)/create-post.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';\nimport { usePosts } from '@/app/data/demoPostData';\nimport { useState } from 'react';\nimport React from 'react';\n\nexport default function CreatePostScreen() {\n    const { createPost } = usePosts(); // <-- API-based create\n    const [content, setContent] = useState(\"\");\n\n    const handlePost = async () => {\n        if (!content.trim()) {\n            Alert.alert(\"Cannot post empty content!\");\n            return;\n        }\n\n        try {\n            await createPost(content, \"general\"); // <--- API request\n            setContent(\"\");\n            Alert.alert(\"Post created!\");\n        } catch (err: any) {\n            Alert.alert(\"Error\", err.message || \"Failed to create post\");\n            console.log(err);\n        }\n    };\n\n    return (\n        <View style={styles.container}>\n            <Text style={styles.title}>Create a New Post</Text>\n\n            <TextInput\n                value={content}\n                onChangeText={setContent}\n                style={styles.input}\n                multiline\n                placeholder=\"What's on your mind?\"\n            />\n\n            <TouchableOpacity onPress={handlePost} style={styles.button}>\n                <Text style={styles.buttonText}>Post</Text>\n            </TouchableOpacity>\n        </View>\n    );\n}\n\nconst styles = StyleSheet.create({\n    container: { flex: 1, padding: 16 },\n    title: { fontWeight: \"bold\", fontSize: 18, marginBottom: 12 },\n    input: {\n        borderWidth: 1,\n        borderColor: \"#ccc\",\n        borderRadius: 8,\n        padding: 12,\n        marginBottom: 12,\n        minHeight: 80,\n        textAlignVertical: \"top\",\n    },\n    button: {\n        backgroundColor: \"#1DA1F2\",\n        padding: 12,\n        borderRadius: 8,\n        alignItems: \"center\",\n    },\n    buttonText: { color: \"#fff\", fontWeight: \"bold\", fontSize: 16 },\n});\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/(tabs)/create-post.tsx b/app/(tabs)/create-post.tsx
+--- a/app/(tabs)/create-post.tsx	(revision e33705c39d7fdfa5f5a37a405eff61acd0d2bfea)
++++ b/app/(tabs)/create-post.tsx	(date 1764794365260)
+@@ -1,25 +1,106 @@
+-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
++import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ActivityIndicator } from 'react-native';
+ import { usePosts } from '@/app/data/demoPostData';
+ import { useState } from 'react';
+ import React from 'react';
++import * as ImagePicker from 'expo-image-picker';
++import * as SecureStore from 'expo-secure-store';
+ 
+ export default function CreatePostScreen() {
+-    const { createPost } = usePosts(); // <-- API-based create
++    const { createPost, refreshPosts } = usePosts(); // <-- API-based create
+     const [content, setContent] = useState("");
++    const [selectedImage, setSelectedImage] = useState<string | null>(null);
++    const [uploading, setUploading] = useState(false);
++
++    const pickImage = async () => {
++        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
++        
++        if (status !== 'granted') {
++            Alert.alert('Permission Denied', 'We need camera roll permissions to upload images.');
++            return;
++        }
++
++        const result = await ImagePicker.launchImageLibraryAsync({
++            mediaTypes: ['images'],
++            allowsEditing: true,
++            aspect: [4, 3],
++            quality: 0.8,
++        });
++
++        if (!result.canceled && result.assets[0]) {
++            setSelectedImage(result.assets[0].uri);
++        }
++    };
++
++    const takePhoto = async () => {
++        const { status } = await ImagePicker.requestCameraPermissionsAsync();
++        
++        if (status !== 'granted') {
++            Alert.alert('Permission Denied', 'We need camera permissions to take photos.');
++            return;
++        }
++
++        const result = await ImagePicker.launchCameraAsync({
++            allowsEditing: true,
++            aspect: [4, 3],
++            quality: 0.8,
++        });
++
++        if (!result.canceled && result.assets[0]) {
++            setSelectedImage(result.assets[0].uri);
++        }
++    };
+ 
+     const handlePost = async () => {
+-        if (!content.trim()) {
++        if (!content.trim() && !selectedImage) {
+             Alert.alert("Cannot post empty content!");
+             return;
+         }
+ 
++        setUploading(true);
++
+         try {
+-            await createPost(content, "general"); // <--- API request
+-            setContent("");
+-            Alert.alert("Post created!");
++            const token = await SecureStore.getItemAsync("authToken");
++            const ip = await SecureStore.getItemAsync("serverIp");
++
++            const formData = new FormData();
++            formData.append('content', content);
++            formData.append('post_type', 'general');
++
++            if (selectedImage) {
++                const filename = selectedImage.split('/').pop() || 'post_image.jpg';
++                const match = /\.(\w+)$/.exec(filename);
++                const type = match ? `image/${match[1]}` : 'image/jpeg';
++
++                formData.append('post_image', {
++                    uri: selectedImage,
++                    name: filename,
++                    type: type,
++                } as any);
++            }
++
++            const res = await fetch(`http://${ip}/api/posts`, {
++                method: 'POST',
++                headers: {
++                    'Authorization': `Bearer ${token}`,
++                },
++                body: formData,
++            });
++
++            const data = await res.json();
++
++            if (data.success) {
++                setContent("");
++                setSelectedImage(null);
++                await refreshPosts();
++                Alert.alert("Success", "Post created!");
++            } else {
++                Alert.alert("Error", data.message || "Failed to create post");
++            }
+         } catch (err: any) {
+             Alert.alert("Error", err.message || "Failed to create post");
+             console.log(err);
++        } finally {
++            setUploading(false);
+         }
+     };
+ 
+@@ -35,8 +116,37 @@
+                 placeholder="What's on your mind?"
+             />
+ 
+-            <TouchableOpacity onPress={handlePost} style={styles.button}>
+-                <Text style={styles.buttonText}>Post</Text>
++            {selectedImage && (
++                <View style={styles.imagePreview}>
++                    <Image source={{ uri: selectedImage }} style={styles.previewImage} />
++                    <TouchableOpacity 
++                        style={styles.removeImageButton}
++                        onPress={() => setSelectedImage(null)}
++                    >
++                        <Text style={styles.removeImageText}>✕</Text>
++                    </TouchableOpacity>
++                </View>
++            )}
++
++            <View style={styles.imageButtons}>
++                <TouchableOpacity onPress={pickImage} style={styles.imageButton}>
++                    <Text style={styles.imageButtonText}>📷 Photo Library</Text>
++                </TouchableOpacity>
++                <TouchableOpacity onPress={takePhoto} style={styles.imageButton}>
++                    <Text style={styles.imageButtonText}>📸 Take Photo</Text>
++                </TouchableOpacity>
++            </View>
++
++            <TouchableOpacity 
++                onPress={handlePost} 
++                style={[styles.button, uploading && styles.buttonDisabled]}
++                disabled={uploading}
++            >
++                {uploading ? (
++                    <ActivityIndicator color="#fff" />
++                ) : (
++                    <Text style={styles.buttonText}>Post</Text>
++                )}
+             </TouchableOpacity>
+         </View>
+     );
+@@ -54,11 +164,58 @@
+         minHeight: 80,
+         textAlignVertical: "top",
+     },
++    imagePreview: {
++        position: 'relative',
++        marginBottom: 12,
++        borderRadius: 8,
++        overflow: 'hidden',
++    },
++    previewImage: {
++        width: '100%',
++        height: 200,
++        resizeMode: 'cover',
++    },
++    removeImageButton: {
++        position: 'absolute',
++        top: 8,
++        right: 8,
++        backgroundColor: 'rgba(0,0,0,0.6)',
++        width: 30,
++        height: 30,
++        borderRadius: 15,
++        justifyContent: 'center',
++        alignItems: 'center',
++    },
++    removeImageText: {
++        color: '#fff',
++        fontSize: 18,
++        fontWeight: 'bold',
++    },
++    imageButtons: {
++        flexDirection: 'row',
++        gap: 8,
++        marginBottom: 12,
++    },
++    imageButton: {
++        flex: 1,
++        backgroundColor: '#f0f0f0',
++        padding: 10,
++        borderRadius: 8,
++        alignItems: 'center',
++    },
++    imageButtonText: {
++        color: '#333',
++        fontWeight: '600',
++        fontSize: 14,
++    },
+     button: {
+         backgroundColor: "#1DA1F2",
+         padding: 12,
+         borderRadius: 8,
+         alignItems: "center",
+     },
++    buttonDisabled: {
++        backgroundColor: "#95a5a6",
++    },
+     buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+ });

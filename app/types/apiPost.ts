@@ -6,6 +6,7 @@ export type ApiPost = {
     priority: "normal" | "high" | "urgent";
     is_verified: boolean;
     media_urls?: string | null;
+    post_image?: string | null;  // New field for post images
     location_lat?: number | null;
     location_lng?: number | null;
     visibility_radius: number;
@@ -20,4 +21,3 @@ export type ApiPost = {
     display_name: string;
     author_image: string | null;
 };
-

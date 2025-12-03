@@ -13,9 +13,12 @@ export default function FeedScreen() {
         }, [])
     );
 
+    // Filter out event posts since they have their own tab
+    const regularPosts = posts.filter(post => post.post_type !== 'event');
+
     return (
         <FlatList
-            data={posts}        // array of ApiPost
+            data={regularPosts}        // array of ApiPost (excluding events)
             keyExtractor={(item) => item.post_id.toString()}
             renderItem={({ item }) => <Post post={item} />}
             contentContainerStyle={{ paddingBottom: 60 }}

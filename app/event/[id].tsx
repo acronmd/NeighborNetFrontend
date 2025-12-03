@@ -2,7 +2,14 @@ import { EventType, useEvents } from "@/app/data/demoEventData";
 import { api } from "@/app/lib/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { BackHandler, Pressable, StyleSheet, Text, View } from "react-native";
+import { BackHandler, Pressable, StyleSheet, Text, View, Alert, ScrollView, ActivityIndicator } from "react-native";
+import * as SecureStore from "expo-secure-store";
+
+type Attendee = {
+    user_id: number;
+    name: string;
+    username: string;
+};
 
 export default function EventDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -13,6 +20,10 @@ export default function EventDetailScreen() {
     const event = events.find((e: EventType & { event_id: number }) => e.event_id === eventId);
 
     const [authorName, setAuthorName] = useState<string | null>(null);
+    const [attendees, setAttendees] = useState<Attendee[]>([]);
+    const [isSignedUp, setIsSignedUp] = useState(false);
+    const [loadingAttendees, setLoadingAttendees] = useState(false);
+    const [currentAttendeeCount, setCurrentAttendeeCount] = useState(event?.current_attendees ?? 0);
 
     useEffect(() => {
         const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -35,7 +46,128 @@ export default function EventDetailScreen() {
             }
         };
         fetchPost();
+        fetchAttendees();
+        checkSignUpStatus();
     }, [event]);
+
+    const fetchAttendees = async () => {
+        if (!event) return;
+        setLoadingAttendees(true);
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const ip = await SecureStore.getItemAsync("serverIp");
+
+            const res = await fetch(`http://${ip}/api/events/${event.event_id}/attendees`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setAttendees(data.attendees || []);
+                setCurrentAttendeeCount(data.attendees?.length || 0);
+            }
+        } catch (err) {
+            console.error("Failed to fetch attendees:", err);
+        } finally {
+            setLoadingAttendees(false);
+        }
+    };
+
+    const checkSignUpStatus = async () => {
+        if (!event) return;
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const ip = await SecureStore.getItemAsync("serverIp");
+
+            const res = await fetch(`http://${ip}/api/events/${event.event_id}/signup/status`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setIsSignedUp(data.isSignedUp);
+            }
+        } catch (err) {
+            console.error("Failed to check sign-up status:", err);
+        }
+    };
+
+    const handleSignUp = async () => {
+        if (!event) return;
+
+        // Check if event is at capacity
+        if (event.max_attendees && currentAttendeeCount >= event.max_attendees) {
+            Alert.alert("Event Full", "This event has reached maximum capacity and is no longer accepting sign-ups.");
+            return;
+        }
+
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const ip = await SecureStore.getItemAsync("serverIp");
+
+            const res = await fetch(`http://${ip}/api/events/${event.event_id}/signup`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                setIsSignedUp(true);
+                setCurrentAttendeeCount(prev => prev + 1);
+                Alert.alert("Success", "You've successfully signed up for this event!");
+                await fetchAttendees();
+            } else if (res.status === 409) {
+                Alert.alert("Already Signed Up", "You're already registered for this event.");
+            } else if (res.status === 400 && data.message?.includes("capacity")) {
+                Alert.alert("Event Full", "Sorry, this event has reached maximum capacity.");
+            } else {
+                Alert.alert("Error", data.message || "Failed to sign up for event.");
+            }
+        } catch (err) {
+            console.error("Sign-up error:", err);
+            Alert.alert("Error", "Failed to sign up for event.");
+        }
+    };
+
+    const handleCancelSignUp = async () => {
+        if (!event) return;
+
+        Alert.alert(
+            "Cancel Sign-Up",
+            "Are you sure you want to cancel your registration?",
+            [
+                { text: "No", style: "cancel" },
+                {
+                    text: "Yes",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const token = await SecureStore.getItemAsync("authToken");
+                            const ip = await SecureStore.getItemAsync("serverIp");
+
+                            const res = await fetch(`http://${ip}/api/events/${event.event_id}/signup`, {
+                                method: "DELETE",
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+
+                            if (res.ok) {
+                                setIsSignedUp(false);
+                                setCurrentAttendeeCount(prev => prev - 1);
+                                Alert.alert("Success", "You've cancelled your registration.");
+                                await fetchAttendees();
+                            } else {
+                                Alert.alert("Error", "Failed to cancel registration.");
+                            }
+                        } catch (err) {
+                            console.error("Cancel error:", err);
+                            Alert.alert("Error", "Failed to cancel registration.");
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     if (!event) {
         return (
@@ -46,9 +178,10 @@ export default function EventDetailScreen() {
     }
 
     const dateObj = new Date(event.event_date);
+    const isAtCapacity = event.max_attendees && currentAttendeeCount >= event.max_attendees;
 
     return (
-        <View style={styles.backgroundContainer}>
+        <ScrollView style={styles.backgroundContainer}>
             <View style={styles.card}>
                 {/* EVENT INFO */}
                 <Text style={styles.title}>{event.title}</Text>
@@ -60,29 +193,70 @@ export default function EventDetailScreen() {
 
                 <Text style={styles.overview}>{event.description}</Text>
 
-                {event.location && <Text style={styles.location}>{event.location}</Text>}
+                {event.location && <Text style={styles.location}>📍 {event.location}</Text>}
                 <Text style={styles.date}>
-                    {dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString()}
+                    📅 {dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString()}
                 </Text>
 
                 {/* ATTENDING */}
-                <Text style={styles.attending}>
-                    👥 {event.current_attendees ?? 0} / {event.max_attendees ?? '—'}
+                <Text style={[styles.attending, isAtCapacity && styles.atCapacity]}>
+                    👥 {currentAttendeeCount} / {event.max_attendees ?? '∞'}
+                    {isAtCapacity && " (FULL)"}
                 </Text>
 
                 {/* BUTTONS */}
                 <View style={styles.buttons}>
-                    <Pressable
-                        style={styles.rsvpBtn}
-                        onPress={() => {
-                            // TODO: Implement RSVP functionality here if needed
-                        }}
-                    >
-                        <Text style={styles.rsvpText}>RSVP</Text>
-                    </Pressable>
+                    {isSignedUp ? (
+                        <Pressable
+                            style={styles.cancelBtn}
+                            onPress={handleCancelSignUp}
+                        >
+                            <Text style={styles.cancelText}>Cancel Registration</Text>
+                        </Pressable>
+                    ) : (
+                        <Pressable
+                            style={[styles.rsvpBtn, isAtCapacity && styles.disabledBtn]}
+                            onPress={handleSignUp}
+                            disabled={isAtCapacity}
+                        >
+                            <Text style={styles.rsvpText}>
+                                {isAtCapacity ? "Event Full" : "Sign Up"}
+                            </Text>
+                        </Pressable>
+                    )}
+                </View>
+
+                {/* ATTENDEES LIST */}
+                <View style={styles.attendeesSection}>
+                    <Text style={styles.attendeesTitle}>Attendees ({currentAttendeeCount})</Text>
+                    {loadingAttendees ? (
+                        <ActivityIndicator color="white" style={{ marginTop: 10 }} />
+                    ) : attendees.length > 0 ? (
+                        <View style={styles.attendeesList}>
+                            {attendees.map((attendee) => (
+                                <Pressable
+                                    key={attendee.user_id}
+                                    style={styles.attendeeItem}
+                                    onPress={() => router.push(`/users/${attendee.user_id}`)}
+                                >
+                                    <View style={styles.attendeeAvatar}>
+                                        <Text style={styles.attendeeAvatarText}>
+                                            {attendee.name[0].toUpperCase()}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.attendeeInfo}>
+                                        <Text style={styles.attendeeName}>{attendee.name}</Text>
+                                        <Text style={styles.attendeeUsername}>@{attendee.username}</Text>
+                                    </View>
+                                </Pressable>
+                            ))}
+                        </View>
+                    ) : (
+                        <Text style={styles.noAttendees}>No attendees yet. Be the first to sign up!</Text>
+                    )}
                 </View>
             </View>
-        </View>
+        </ScrollView>
     );
 }
 
@@ -104,10 +278,38 @@ const styles = StyleSheet.create({
     title: { fontSize: 26, fontWeight: "700", color: "white", marginTop: 16 },
     host: { color: "#B8BED0", marginBottom: 10 },
     overview: { fontSize: 18, color: "white", marginBottom: 15 },
-    location: { fontSize: 15, color: "white" },
-    date: { fontSize: 15, color: "#B8BED0" },
+    location: { fontSize: 15, color: "white", marginBottom: 8 },
+    date: { fontSize: 15, color: "#B8BED0", marginBottom: 8 },
     attending: { marginTop: 16, fontSize: 16, color: "#B8BED0", fontWeight: "600", textAlign: "center" },
+    atCapacity: { color: "#E74C3C", fontWeight: "700" },
     buttons: { flexDirection: "row", marginTop: 20, justifyContent: "space-between" },
     rsvpBtn: { flex: 1, paddingVertical: 12, borderRadius: 30, backgroundColor: "white", alignItems: "center" },
     rsvpText: { color: "#2E3347", fontWeight: "700" },
+    disabledBtn: { backgroundColor: "#95a5a6", opacity: 0.6 },
+    cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 30, backgroundColor: "#E74C3C", alignItems: "center" },
+    cancelText: { color: "white", fontWeight: "700" },
+    attendeesSection: { marginTop: 30, paddingTop: 20, borderTopWidth: 1, borderTopColor: "#B8BED0" },
+    attendeesTitle: { fontSize: 20, fontWeight: "700", color: "white", marginBottom: 15 },
+    attendeesList: { gap: 12 },
+    attendeeItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(255,255,255,0.1)",
+        padding: 12,
+        borderRadius: 12,
+    },
+    attendeeAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: "#4A90E2",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 12,
+    },
+    attendeeAvatarText: { color: "white", fontWeight: "700", fontSize: 18 },
+    attendeeInfo: { flex: 1 },
+    attendeeName: { fontSize: 16, fontWeight: "600", color: "white" },
+    attendeeUsername: { fontSize: 14, color: "#B8BED0" },
+    noAttendees: { fontSize: 14, color: "#B8BED0", fontStyle: "italic", textAlign: "center", marginTop: 10 },
 });
