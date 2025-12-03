@@ -7,7 +7,7 @@ import { usePosts } from "../data/demoPostData";
 
 export default function Post({ post }: { post: ApiPost }) {
     const router = useRouter();
-    const { deletePost, updatePost } = usePosts();
+    const { deletePost, updatePost, refreshPosts } = usePosts();
 
     const [likes, setLikes] = useState(post.likes_count);
     const [commentsCount, setCommentsCount] = useState(post.comments_count);
@@ -16,6 +16,23 @@ export default function Post({ post }: { post: ApiPost }) {
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(post.content);
     const [isLiked, setIsLiked] = useState(false);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+    // Fix image URL to use actual server IP instead of localhost
+    useEffect(() => {
+        const fixImageUrl = async () => {
+            if (post.post_image) {
+                const ip = await SecureStore.getItemAsync("serverIp");
+                if (ip && post.post_image.includes('localhost')) {
+                    const fixedUrl = post.post_image.replace('localhost:5050', ip).replace('localhost', ip);
+                    setImageUrl(fixedUrl);
+                } else {
+                    setImageUrl(post.post_image);
+                }
+            }
+        };
+        fixImageUrl();
+    }, [post.post_image]);
 
     // Check if current user is post owner and like status
     useEffect(() => {
@@ -69,6 +86,10 @@ export default function Post({ post }: { post: ApiPost }) {
         if (likeRes.ok) {
             // Successfully liked
             setLikes((prev) => prev + 1);
+            setIsLiked(true);
+
+            // Refresh the feed to update like counts
+            await refreshPosts();
             return;
         }
 
@@ -82,6 +103,10 @@ export default function Post({ post }: { post: ApiPost }) {
 
             if (unlikeRes.ok) {
                 setLikes((prev) => prev - 1);
+                setIsLiked(false);
+
+                // Refresh the feed to update like counts
+                await refreshPosts();
             } else {
                 Alert.alert("Failed to unlike post");
             }
@@ -100,18 +125,21 @@ export default function Post({ post }: { post: ApiPost }) {
         const token = await SecureStore.getItemAsync("authToken");
         const ip = await SecureStore.getItemAsync("serverIp");
 
-        const res = await fetch(`http://${ip}/api/posts/${post.post_id}/comment`, {
+        const res = await fetch(`http://${ip}/api/posts/${post.post_id}/comments`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ text: replyText }),
+            body: JSON.stringify({ content: replyText }),
         });
 
         if (res.ok) {
             setReplyText("");
             setCommentsCount((prev) => prev + 1);
+
+            // Refresh the feed to update comment counts
+            await refreshPosts();
         } else {
             Alert.alert("Failed to comment");
         }
@@ -184,6 +212,27 @@ export default function Post({ post }: { post: ApiPost }) {
             {/* Content */}
             <Pressable onPress={() => router.push(`/feed/${post.post_id}`)}>
                 <Text style={styles.content}>{post.content}</Text>
+                {imageUrl && (
+                    <Image
+                        source={{ uri: imageUrl }}
+                        style={styles.postImage}
+                        resizeMode="cover"
+                        onError={(e) => {
+                            console.error('Post image load error:', e.nativeEvent.error);
+                            console.log('Failed post image URL:', imageUrl);
+                        }}
+                        onLoad={() => console.log('Post image loaded:', imageUrl)}
+                    />
+                )}
+                {post.tags && post.tags.length > 0 && (
+                    <View style={styles.tagsContainer}>
+                        {post.tags.map((tag, index) => (
+                            <View key={index} style={styles.tag}>
+                                <Text style={styles.tagText}>#{tag}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
                 <View style={styles.separator} />
             </Pressable>
 
@@ -328,6 +377,33 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: '#e1e8ed',
         marginVertical: 4,
+    },
+    postImage: {
+        width: '100%',
+        height: 250,
+        borderRadius: 12,
+        marginTop: 12,
+        marginBottom: 8,
+    },
+    tagsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 8,
+        marginBottom: 8,
+    },
+    tag: {
+        backgroundColor: '#E8F5FD',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#1DA1F2',
+    },
+    tagText: {
+        color: '#1DA1F2',
+        fontSize: 12,
+        fontWeight: '600',
     },
     ownerActions: {
         flexDirection: "row",

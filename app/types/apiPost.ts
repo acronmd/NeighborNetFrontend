@@ -1,4 +1,4 @@
-export type ApiPost = {
+ export type ApiPost = {
     post_id: number;
     user_id: number;         // because DB returns this
     content: string;
@@ -7,6 +7,7 @@ export type ApiPost = {
     is_verified: boolean;
     media_urls?: string | null;
     post_image?: string | null;  // New field for post images
+    tags?: string[];  // Array of tag strings
     location_lat?: number | null;
     location_lng?: number | null;
     visibility_radius: number;

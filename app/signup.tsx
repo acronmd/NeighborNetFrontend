@@ -59,12 +59,16 @@ export default function SignupScreen() {
                 return;
             }
 
-            Alert.alert("Success", "Account created! Please log in.", [
-                {
-                    text: "OK",
-                    onPress: () => router.replace("/login"),
-                },
-            ]);
+            Alert.alert(
+                "Account Created!", 
+                "Your account has been created successfully. A verification email has been sent to your email address. Please verify your email before logging in.",
+                [
+                    {
+                        text: "OK",
+                        onPress: () => router.replace("/login"),
+                    },
+                ]
+            );
         } catch (err) {
             console.error(err);
             setError("Network error. Check IP or server status.");
@@ -76,6 +80,10 @@ export default function SignupScreen() {
         <ScrollView style={styles.container}>
             <View style={styles.content}>
                 <Text style={styles.title}>Create Account</Text>
+
+                <Text style={styles.notice}>
+                    📧 A verification email will be sent to verify your identity
+                </Text>
 
                 {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -216,5 +224,14 @@ const styles = StyleSheet.create({
     linkText: {
         color: "#4A90E2",
         fontSize: 16,
+    },
+    notice: {
+        color: "#4A90E2",
+        fontSize: 13,
+        marginBottom: 16,
+        textAlign: "center",
+        backgroundColor: "rgba(74, 144, 226, 0.1)",
+        padding: 12,
+        borderRadius: 8,
     },
 });

@@ -81,6 +81,15 @@ export default function LoginScreen() {
                 <Text style={styles.buttonText}>Log In</Text>
             </Pressable>
 
+            <View style={styles.linksRow}>
+                <Pressable onPress={() => router.push("/forgot-password" as any)}>
+                    <Text style={styles.linkText}>Forgot Password?</Text>
+                </Pressable>
+                <Pressable onPress={() => router.push("/forgot-username" as any)}>
+                    <Text style={styles.linkText}>Forgot Username?</Text>
+                </Pressable>
+            </View>
+
             <Pressable onPress={() => router.push("/signup")} style={styles.linkContainer}>
                 <Text style={styles.linkText}>Don't have an account? Sign up</Text>
             </Pressable>
@@ -132,6 +141,12 @@ const styles = StyleSheet.create({
     },
     linkText: {
         color: "#4A90E2",
-        fontSize: 16,
+        fontSize: 14,
+    },
+    linksRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 16,
+        paddingHorizontal: 8,
     },
 });

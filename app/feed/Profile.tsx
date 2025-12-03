@@ -14,6 +14,7 @@ type ApiUser = {
     display_name: string;
     bio?: string | null;
     street?: string | null;
+    phone?: string | null;
     verification_status: string;
     profile_visibility: string;
     is_moderator: boolean | number;
@@ -38,7 +39,7 @@ type Badge = {
 
 export default function Profile() {
     const router = useRouter();
-    const { id } = useLocalSearchParams<{ id?: string }>();  // id from route
+    const { id } = useLocalSearchParams<{ id?: string }>();
     const viewingUserId = id ? Number(id) : null;
 
     const { posts } = usePosts();
@@ -48,8 +49,18 @@ export default function Profile() {
 
     const [loading, setLoading] = useState(true);
     const [isEditing, setEditing] = useState(false);
+    
+    // Editable fields
     const [bio, setBio] = useState("");
+    const [displayName, setDisplayName] = useState("");
+    const [username, setUsername] = useState("");
+    const [name, setName] = useState("");
+    const [street, setStreet] = useState("");
+    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
+    
     const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [fixedProfileImage, setFixedProfileImage] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [badges, setBadges] = useState<Badge[]>([]);
     const [loadingBadges, setLoadingBadges] = useState(false);
@@ -90,8 +101,25 @@ export default function Profile() {
 
                 if (data.success) {
                     setUser(data.user);
+                    // Initialize all editable fields
                     setBio(data.user.bio ?? '');
-                    setProfileImage(data.user.profile_image ?? null);
+                    setDisplayName(data.user.display_name ?? '');
+                    setUsername(data.user.username ?? '');
+                    setName(data.user.name ?? '');
+                    setStreet(data.user.street ?? '');
+                    setEmail(data.user.email ?? '');
+                    setPhone(data.user.phone ?? '');
+                    
+                    const rawImage = data.user.profile_image ?? null;
+                    setProfileImage(rawImage);
+                    
+                    // Fix localhost URLs
+                    if (rawImage && rawImage.includes('localhost') && ip) {
+                        const fixed = rawImage.replace('localhost:5050', ip).replace('localhost', ip);
+                        setFixedProfileImage(fixed);
+                    } else {
+                        setFixedProfileImage(rawImage);
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -139,10 +167,71 @@ export default function Profile() {
 
     const userPosts = Object.values(posts).filter(p => p.user_id === user.user_id);
 
+    const startEditing = () => {
+        if (user) {
+            setBio(user.bio ?? '');
+            setDisplayName(user.display_name ?? '');
+            setUsername(user.username ?? '');
+            setName(user.name ?? '');
+            setStreet(user.street ?? '');
+            setEmail(user.email ?? '');
+            setPhone(user.phone ?? '');
+        }
+        setEditing(true);
+    };
+
+    const cancelEditing = () => {
+        if (user) {
+            setBio(user.bio ?? '');
+            setDisplayName(user.display_name ?? '');
+            setUsername(user.username ?? '');
+            setName(user.name ?? '');
+            setStreet(user.street ?? '');
+            setEmail(user.email ?? '');
+            setPhone(user.phone ?? '');
+        }
+        setEditing(false);
+    };
+
     async function saveEdits() {
+        if (!name.trim()) {
+            Alert.alert("Error", "Name cannot be empty");
+            return;
+        }
+
+        if (!displayName.trim()) {
+            Alert.alert("Error", "Display name cannot be empty");
+            return;
+        }
+
+        if (!username.trim()) {
+            Alert.alert("Error", "Username cannot be empty");
+            return;
+        }
+
+        if (username.length < 3) {
+            Alert.alert("Error", "Username must be at least 3 characters");
+            return;
+        }
+
+        if (email && !email.includes('@')) {
+            Alert.alert("Error", "Please enter a valid email");
+            return;
+        }
+
         try {
             const token = await SecureStore.getItemAsync("authToken");
             const ip = await SecureStore.getItemAsync("serverIp");
+
+            const updateData = {
+                name: name.trim(),
+                display_name: displayName.trim(),
+                username: username.trim(),
+                bio: bio.trim(),
+                street: street.trim() || null,
+                email: email.trim() || null,
+                phone: phone.trim() || null,
+            };
 
             const res = await fetch(`http://${ip}/api/users/profile`, {
                 method: 'PUT',
@@ -150,24 +239,34 @@ export default function Profile() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ bio })
+                body: JSON.stringify(updateData)
             });
 
             const data = await res.json();
 
             if (data.success) {
-                setUser(prev => prev ? { ...prev, bio } : prev);
+                setUser(prev => prev ? { 
+                    ...prev, 
+                    name,
+                    display_name: displayName,
+                    username,
+                    bio,
+                    street,
+                    email,
+                    phone: phone || undefined
+                } : prev);
                 setEditing(false);
+                Alert.alert("Success", "Profile updated successfully");
             } else {
-                alert("Failed to update profile");
+                Alert.alert("Error", data.message || "Failed to update profile");
             }
-        } catch {
-            alert("Error saving profile");
+        } catch (err) {
+            console.error("Error saving profile:", err);
+            Alert.alert("Error", "Failed to update profile");
         }
     }
 
     const pickImage = async () => {
-        // Request permissions
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         
         if (status !== 'granted') {
@@ -175,7 +274,6 @@ export default function Profile() {
             return;
         }
 
-        // Launch image picker
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: true,
@@ -194,7 +292,6 @@ export default function Profile() {
             const token = await SecureStore.getItemAsync("authToken");
             const ip = await SecureStore.getItemAsync("serverIp");
 
-            // Create form data
             const formData = new FormData();
             const filename = imageUri.split('/').pop() || 'profile.jpg';
             const match = /\.(\w+)$/.exec(filename);
@@ -216,23 +313,28 @@ export default function Profile() {
 
             const data = await res.json();
 
+            console.log('Profile image upload response:', data);
+
             if (data.success) {
-                const imageUrl = data.image_url || data.profile_image || data.url;
-                setProfileImage(imageUrl);
+                let imageUrl = data.image_url || data.profile_image || data.url;
                 
-                // Refresh user data to get updated profile
-                const token = await SecureStore.getItemAsync('authToken');
-                const ip = await SecureStore.getItemAsync('serverIp');
-                const userRes = await fetch(`http://${ip}/api/users/profile`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const userData = await userRes.json();
-                if (userData.success && userData.user.profile_image) {
-                    setProfileImage(userData.user.profile_image);
+                console.log('Raw image URL from backend:', imageUrl);
+                
+                if (imageUrl && imageUrl.includes('localhost')) {
+                    imageUrl = imageUrl.replace('localhost:5050', ip).replace('localhost', ip);
+                    console.log('Fixed image URL:', imageUrl);
+                }
+                
+                setProfileImage(imageUrl);
+                setFixedProfileImage(imageUrl);
+                
+                if (user) {
+                    setUser({ ...user, profile_image: imageUrl });
                 }
                 
                 Alert.alert('Success', 'Profile picture updated!');
             } else {
+                console.error('Profile image upload failed:', data);
                 Alert.alert('Error', data.message || 'Failed to upload image');
             }
         } catch (err) {
@@ -288,16 +390,16 @@ export default function Profile() {
                     onPress={isSelf ? pickImage : undefined}
                     disabled={!isSelf || uploadingImage}
                 >
-                    {profileImage ? (
+                    {fixedProfileImage ? (
                         <Image 
-                            source={{ uri: profileImage }} 
+                            source={{ uri: fixedProfileImage }} 
                             style={styles.avatarImage}
                             onError={(e) => {
                                 console.error('Profile image load error:', e.nativeEvent.error);
-                                console.log('Failed URL:', profileImage);
-                                setProfileImage(null);
+                                console.log('Failed URL:', fixedProfileImage);
+                                setFixedProfileImage(null);
                             }}
-                            onLoad={() => console.log('Profile image loaded successfully:', profileImage)}
+                            onLoad={() => console.log('Profile image loaded successfully:', fixedProfileImage)}
                         />
                     ) : (
                         <View style={styles.avatar}>
@@ -337,31 +439,135 @@ export default function Profile() {
                 {user.street && <Text style={styles.location}>{user.street}</Text>}
             </View>
 
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Bio</Text>
-                {isEditing ? (
-                    <TextInput value={bio} onChangeText={setBio} style={styles.input} multiline />
-                ) : (
-                    <Text>{bio || "No bio."}</Text>
-                )}
-            </View>
+            {isEditing ? (
+                <View style={styles.editContainer}>
+                    <Text style={styles.editTitle}>Edit Profile</Text>
+                    
+                    <View style={styles.editSection}>
+                        <Text style={styles.editSectionTitle}>Personal Information</Text>
+                        
+                        <Text style={styles.inputLabel}>Full Name *</Text>
+                        <TextInput
+                            value={name}
+                            onChangeText={setName}
+                            style={styles.input}
+                            placeholder="John Doe"
+                        />
 
-            {/* Only show edit button if viewing your own profile */}
-            {isSelf && (
-                <View style={styles.section}>
-                    {isEditing ? (
+                        <Text style={styles.inputLabel}>Display Name *</Text>
+                        <TextInput
+                            value={displayName}
+                            onChangeText={setDisplayName}
+                            style={styles.input}
+                            placeholder="Johnny"
+                        />
+
+                        <Text style={styles.inputLabel}>Username * (shown as @{username})</Text>
+                        <TextInput
+                            value={username}
+                            onChangeText={setUsername}
+                            style={styles.input}
+                            placeholder="johndoe"
+                            autoCapitalize="none"
+                        />
+                        <Text style={styles.inputHint}>⚠️ Changing your username will change your @handle</Text>
+                    </View>
+
+                    <View style={styles.editSection}>
+                        <Text style={styles.editSectionTitle}>Contact Information</Text>
+                        
+                        <Text style={styles.inputLabel}>Email</Text>
+                        <TextInput
+                            value={email}
+                            onChangeText={setEmail}
+                            style={styles.input}
+                            placeholder="email@example.com"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+
+                        <Text style={styles.inputLabel}>Phone Number</Text>
+                        <TextInput
+                            value={phone}
+                            onChangeText={setPhone}
+                            style={styles.input}
+                            placeholder="(555) 123-4567"
+                            keyboardType="phone-pad"
+                        />
+
+                        <Text style={styles.inputLabel}>Street Address</Text>
+                        <TextInput
+                            value={street}
+                            onChangeText={setStreet}
+                            style={styles.input}
+                            placeholder="123 Main St"
+                        />
+                    </View>
+
+                    <View style={styles.editSection}>
+                        <Text style={styles.editSectionTitle}>About</Text>
+                        
+                        <Text style={styles.inputLabel}>Bio</Text>
+                        <TextInput
+                            value={bio}
+                            onChangeText={setBio}
+                            style={[styles.input, styles.bioInput]}
+                            placeholder="Tell us about yourself..."
+                            multiline
+                            numberOfLines={4}
+                        />
+                    </View>
+
+                    <View style={styles.editActions}>
+                        <TouchableOpacity onPress={cancelEditing} style={styles.cancelBtn}>
+                            <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity onPress={saveEdits} style={styles.saveBtn}>
-                            <Text style={styles.saveText}>Save</Text>
+                            <Text style={styles.saveText}>Save Changes</Text>
                         </TouchableOpacity>
-                    ) : (
-                        <TouchableOpacity onPress={() => setEditing(true)} style={styles.editBtn}>
-                            <Text style={styles.editText}>Edit Profile</Text>
-                        </TouchableOpacity>
-                    )}
+                    </View>
                 </View>
+            ) : (
+                <>
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>About</Text>
+                        <Text style={styles.infoText}>{bio || "No bio."}</Text>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Information</Text>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Full Name:</Text>
+                            <Text style={styles.infoText}>{user.name}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Display Name:</Text>
+                            <Text style={styles.infoText}>{user.display_name}</Text>
+                        </View>
+                        {user.email && (
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Email:</Text>
+                                <Text style={styles.infoText}>{user.email}</Text>
+                            </View>
+                        )}
+                        {user.phone && (
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Phone:</Text>
+                                <Text style={styles.infoText}>{user.phone}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {isSelf && (
+                        <View style={styles.section}>
+                            <TouchableOpacity onPress={startEditing} style={styles.editBtn}>
+                                <Text style={styles.editText}>Edit Profile</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </>
             )}
 
-            {/* Badges Section */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Badges ({badges.length})</Text>
                 {loadingBadges ? (
@@ -414,7 +620,6 @@ export default function Profile() {
                 )}
             </View>
 
-            {/* Badge Detail Modal */}
             <Modal
                 visible={selectedBadge !== null}
                 animationType="slide"
@@ -464,7 +669,6 @@ export default function Profile() {
         </ScrollView>
     );
 }
-
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 10 },
@@ -535,11 +739,103 @@ const styles = StyleSheet.create({
     location: { color: '#888', marginTop: 4 },
     section: { marginBottom: 20 },
     sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
-    input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 10, backgroundColor: '#fff' },
-    editBtn: { backgroundColor: '#007bff', padding: 10, borderRadius: 4 },
-    editText: { color: '#fff', textAlign: 'center' },
-    saveBtn: { backgroundColor: '#28a745', padding: 10, borderRadius: 4 },
-    saveText: { color: '#fff', textAlign: 'center' },
+    infoRow: {
+        flexDirection: 'row',
+        marginBottom: 8,
+    },
+    infoLabel: {
+        fontWeight: '600',
+        color: '#666',
+        width: 120,
+    },
+    infoText: {
+        flex: 1,
+        color: '#333',
+    },
+    editContainer: {
+        marginBottom: 20,
+        backgroundColor: '#f9f9f9',
+        padding: 16,
+        borderRadius: 8,
+    },
+    editTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    editSection: {
+        marginBottom: 20,
+    },
+    editSectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 12,
+        color: '#333',
+    },
+    inputLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#666',
+        marginBottom: 4,
+        marginTop: 8,
+    },
+    input: { 
+        borderWidth: 1, 
+        borderColor: '#ccc', 
+        borderRadius: 4, 
+        padding: 10, 
+        backgroundColor: '#fff',
+        fontSize: 14,
+    },
+    bioInput: {
+        minHeight: 80,
+        textAlignVertical: 'top',
+    },
+    inputHint: {
+        fontSize: 12,
+        color: '#F39C12',
+        marginTop: 4,
+        fontStyle: 'italic',
+    },
+    editActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+        marginTop: 10,
+    },
+    cancelBtn: { 
+        flex: 1,
+        backgroundColor: '#6c757d', 
+        padding: 12, 
+        borderRadius: 4 
+    },
+    cancelText: { 
+        color: '#fff', 
+        textAlign: 'center',
+        fontWeight: '600',
+    },
+    editBtn: { 
+        backgroundColor: '#007bff', 
+        padding: 12, 
+        borderRadius: 4 
+    },
+    editText: { 
+        color: '#fff', 
+        textAlign: 'center',
+        fontWeight: '600',
+    },
+    saveBtn: { 
+        flex: 1,
+        backgroundColor: '#28a745', 
+        padding: 12, 
+        borderRadius: 4 
+    },
+    saveText: { 
+        color: '#fff', 
+        textAlign: 'center',
+        fontWeight: '600',
+    },
     postTitle: { color: '#007bff', marginBottom: 5 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     badgesGrid: {
