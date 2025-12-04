@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { api } from '../lib/api';
+import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, StatusBar } from 'react-native';
+import { api } from "../lib/_api";
 
 type Contact = { user_id: number; display_name: string; username: string; profile_image_url?: string };
 
@@ -12,14 +12,18 @@ export default function NewChatScreen() {
     const [selected, setSelected] = useState<number[]>([]);
     const [groupName, setGroupName] = useState('');
     const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
 
     useEffect(() => {
         (async () => {
             try {
                 const json = await api('/contacts/my-contacts', { method: 'GET' });
                 setContacts(json.contacts || []);
-            } catch (err) {
-                console.error('Failed load contacts', err);
+            } catch (err: any) {
+                console.error('Failed load contacts:', err.message || 'Unknown error');
+                Alert.alert('Error', 'Failed to load contacts');
+            } finally {
+                setInitialLoading(false);
             }
         })();
         // preselect a user if provided via query param ?select=123
@@ -65,42 +69,211 @@ export default function NewChatScreen() {
         }
     };
 
+    if (initialLoading) {
+        return (
+            <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color="#4A90E2" />
+                <Text style={styles.loadingText}>Loading contacts...</Text>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>New Chat</Text>
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Trusted Contacts</Text>
+                    {contacts.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyIcon}>👥</Text>
+                            <Text style={styles.emptyText}>No contacts yet</Text>
+                            <Text style={styles.emptySubtext}>Add contacts to start chatting</Text>
+                        </View>
+                    ) : (
+                        <View>
+                            {contacts.map((item) => (
+                                <TouchableOpacity 
+                                    key={item.user_id}
+                                    style={[styles.contactRow, selected.includes(item.user_id) && styles.contactSelected]} 
+                                    onPress={() => toggle(item.user_id)}
+                                >
+                                    <View style={styles.contactInfo}>
+                                        <Text style={styles.contactName}>{item.display_name}</Text>
+                                        <Text style={styles.contactUsername}>@{item.username}</Text>
+                                    </View>
+                                    <TouchableOpacity 
+                                        style={styles.messageButton}
+                                        onPress={() => startDM(item.user_id)}
+                                    >
+                                        <Text style={styles.messageButtonText}>Message</Text>
+                                    </TouchableOpacity>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                </View>
 
-            <Text style={styles.section}>Trusted Contacts</Text>
-            <FlatList
-                data={contacts}
-                keyExtractor={(i) => i.user_id.toString()}
-                renderItem={({ item }) => (
-                    <TouchableOpacity style={[styles.contactRow, selected.includes(item.user_id) && styles.contactSelected]} onPress={() => toggle(item.user_id)}>
-                        <Text style={styles.contactName}>{item.display_name} • @{item.username}</Text>
-                        <TouchableOpacity onPress={() => startDM(item.user_id)}>
-                            <Text style={styles.startLink}>Message</Text>
+                {contacts.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Create Group Chat</Text>
+                        <Text style={styles.sectionSubtitle}>
+                            Select contacts above, then enter a group name
+                        </Text>
+                        <TextInput 
+                            placeholder="Enter group name" 
+                            placeholderTextColor="#95a5a6"
+                            value={groupName} 
+                            onChangeText={setGroupName} 
+                            style={styles.input}
+                            editable={!loading}
+                        />
+                        <TouchableOpacity 
+                            style={[styles.groupButton, (loading || selected.length === 0) && styles.groupButtonDisabled]} 
+                            onPress={createGroup} 
+                            disabled={loading || selected.length === 0}
+                        >
+                            {loading ? (
+                                <ActivityIndicator size="small" color="white" />
+                            ) : (
+                                <Text style={styles.groupButtonText}>
+                                    Create Group ({selected.length} selected)
+                                </Text>
+                            )}
                         </TouchableOpacity>
-                    </TouchableOpacity>
+                    </View>
                 )}
-            />
-
-            <Text style={styles.section}>Create Group</Text>
-            <TextInput placeholder="Group name" value={groupName} onChangeText={setGroupName} style={styles.input} />
-            <TouchableOpacity style={styles.groupButton} onPress={createGroup} disabled={loading}>
-                <Text style={styles.groupButtonText}>{loading ? 'Creating…' : 'Create Group with Selected'}</Text>
-            </TouchableOpacity>
+            </ScrollView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 12, backgroundColor: '#f5f8fa' },
-    title: { fontSize: 22, fontWeight: '700', marginBottom: 8 },
-    section: { marginTop: 12, marginBottom: 6, fontWeight: '700' },
-    contactRow: { padding: 12, backgroundColor: 'white', borderRadius: 10, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    contactSelected: { borderWidth: 2, borderColor: '#4A90E2' },
-    contactName: { fontSize: 16 },
-    startLink: { color: '#4A90E2', fontWeight: '700' },
-    input: { backgroundColor: 'white', padding: 10, borderRadius: 10 },
-    groupButton: { marginTop: 8, backgroundColor: '#4A90E2', padding: 12, borderRadius: 10, alignItems: 'center' },
-    groupButtonText: { color: 'white', fontWeight: '700' },
+    container: { 
+        flex: 1, 
+        backgroundColor: '#f5f8fa' 
+    },
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f5f8fa'
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 16,
+        color: '#657786'
+    },
+    scrollView: {
+        flex: 1
+    },
+    scrollContent: {
+        padding: 16,
+        paddingBottom: 40
+    },
+    section: { 
+        marginBottom: 24
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#14171a',
+        marginBottom: 8
+    },
+    sectionSubtitle: {
+        fontSize: 14,
+        color: '#657786',
+        marginBottom: 12
+    },
+    emptyContainer: {
+        padding: 40,
+        alignItems: 'center',
+        backgroundColor: 'white',
+        borderRadius: 12,
+        marginTop: 8
+    },
+    emptyIcon: {
+        fontSize: 48,
+        marginBottom: 12
+    },
+    emptyText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#14171a',
+        marginBottom: 4
+    },
+    emptySubtext: {
+        fontSize: 14,
+        color: '#657786',
+        textAlign: 'center'
+    },
+    contactRow: { 
+        padding: 16,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        marginBottom: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1
+    },
+    contactSelected: { 
+        borderWidth: 2,
+        borderColor: '#4A90E2',
+        backgroundColor: '#EBF5FB'
+    },
+    contactInfo: {
+        flex: 1,
+        marginRight: 12
+    },
+    contactName: { 
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#14171a',
+        marginBottom: 2
+    },
+    contactUsername: {
+        fontSize: 14,
+        color: '#657786'
+    },
+    messageButton: {
+        backgroundColor: '#4A90E2',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8
+    },
+    messageButtonText: {
+        color: 'white',
+        fontWeight: '600',
+        fontSize: 14
+    },
+    input: { 
+        backgroundColor: 'white',
+        padding: 12,
+        borderRadius: 10,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: '#e1e8ed',
+        marginBottom: 12
+    },
+    groupButton: { 
+        backgroundColor: '#4A90E2',
+        padding: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 48
+    },
+    groupButtonDisabled: {
+        backgroundColor: '#95a5a6',
+        opacity: 0.6
+    },
+    groupButtonText: { 
+        color: 'white',
+        fontWeight: '700',
+        fontSize: 16
+    },
 });

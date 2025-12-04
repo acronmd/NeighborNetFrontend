@@ -9,7 +9,7 @@ import {
     RefreshControl,
     Alert
 } from 'react-native';
-import { api } from '../lib/api';
+import { api } from "../lib/_api";
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 

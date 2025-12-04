@@ -1,4 +1,4 @@
-import type { CommentType } from '@/app/data/demoEventData';
+import type { CommentType } from '@/app/data/_demoEventData';
 import React from 'react';
 import { FlatList, Text } from 'react-native';
 import CommentItem from './CommentItem';

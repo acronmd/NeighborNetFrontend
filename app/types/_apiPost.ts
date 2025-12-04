@@ -21,4 +21,5 @@
     username: string;
     display_name: string;
     author_image: string | null;
+    profile_image?: string | null;  // User's profile picture for the post
 };

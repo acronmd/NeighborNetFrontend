@@ -1,5 +1,5 @@
-import { EventType, useEvents } from "@/app/data/demoEventData";
-import { api } from "@/app/lib/api";
+import { EventType, useEvents } from "../data/_demoEventData";
+import { api } from "../lib/_api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { BackHandler, Pressable, StyleSheet, Text, View, Alert, ScrollView, ActivityIndicator } from "react-native";

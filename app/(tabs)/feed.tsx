@@ -1,8 +1,9 @@
 import React from "react";
-import { usePosts } from "../data/demoPostData";
-import {FlatList, Pressable, View, Text} from "react-native";
+import { usePosts } from "../data/_demoPostData";
+import { FlatList, StyleSheet, View } from "react-native";
 import Post from "@/app/feed/Post";
-import {useFocusEffect} from "expo-router";
+import { useFocusEffect } from "expo-router";
+import { Colors } from "@/constants/theme";
 
 export default function FeedScreen() {
     const { posts, refreshPosts, likePost } = usePosts();
@@ -17,11 +18,25 @@ export default function FeedScreen() {
     const regularPosts = posts.filter(post => post.post_type !== 'event');
 
     return (
-        <FlatList
-            data={regularPosts}        // array of ApiPost (excluding events)
-            keyExtractor={(item) => item.post_id.toString()}
-            renderItem={({ item }) => <Post post={item} />}
-            contentContainerStyle={{ paddingBottom: 60 }}
-        />
+        <View style={styles.container}>
+            <FlatList
+                data={regularPosts}
+                keyExtractor={(item) => item.post_id.toString()}
+                renderItem={({ item }) => <Post post={item} />}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+            />
+        </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: Colors.light.background,
+    },
+    listContent: {
+        paddingVertical: 8,
+        paddingBottom: 80,
+    },
+});

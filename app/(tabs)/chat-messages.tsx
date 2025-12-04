@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { api } from "../lib/api";
+import { api } from "../lib/_api";
 
 type DMConv = {
     user: { user_id: number; display_name: string; profile_image_url?: string } | null;
@@ -39,32 +39,36 @@ export default function ChatMessagesScreen() {
         } catch (err) {
             console.warn('Failed to fetch profile for follows', err);
         }
+        
+        // Fetch DMs with better error handling
         try {
             const dmJson = await api('/direct/conversations', { method: 'GET' });
             setDms(dmJson.conversations || []);
-        } catch (err) {
-            console.error('Failed to load DMs', err);
+        } catch (err: any) {
+            console.warn('Failed to load DMs:', err.message || 'Unknown error');
             setDms([]);
         }
 
+        // Fetch invites with better error handling
         try {
             const invitesJson = await api('/groups/invites', { method: 'GET' });
             setInvites(invitesJson.invites || []);
-        } catch (err) {
-            console.error('Failed to load invites', err);
+        } catch (err: any) {
+            console.warn('Failed to load invites:', err.message || 'Unknown error');
             setInvites([]);
         }
 
+        // Fetch groups with better error handling
         try {
             const groupsJson = await api('/groups/my-groups', { method: 'GET' });
             setGroups(groupsJson.groups || []);
-        } catch (err) {
-            console.error('Failed to load groups', err);
+        } catch (err: any) {
+            console.warn('Failed to load groups:', err.message || 'Unknown error');
             setGroups([]);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
         }
+        
+        setLoading(false);
+        setRefreshing(false);
     }, []);
 
     useEffect(() => {
@@ -74,8 +78,8 @@ export default function ChatMessagesScreen() {
             try {
                 const contactsJson = await api('/contacts/my-contacts', { method: 'GET' });
                 setMutuals(contactsJson.contacts || []);
-            } catch (err) {
-                console.warn('Failed to load mutuals', err);
+            } catch (err: any) {
+                console.warn('Failed to load mutuals:', err.message || 'Unknown error');
                 setMutuals([]);
             }
         })();
@@ -89,8 +93,8 @@ export default function ChatMessagesScreen() {
                 const f = await api(`/follows/following/${userId}?limit=200`, { method: 'GET' });
                 setFollowing(f.following || []);
                 setFilteredFollowing(f.following || []);
-            } catch (err) {
-                console.warn('Failed to load following list', err);
+            } catch (err: any) {
+                console.warn('Failed to load following list:', err.message || 'Unknown error');
                 setFollowing([]);
                 setFilteredFollowing([]);
             }
@@ -180,7 +184,7 @@ export default function ChatMessagesScreen() {
         <View style={styles.container}>
             <View style={styles.headerRow}>
                 <Text style={styles.headerTitle}>Messages</Text>
-                <TouchableOpacity style={styles.newButton} onPress={() => router.push(('/chat/new') as any)}>
+                <TouchableOpacity style={styles.newButton} onPress={() => router.push(('/chat/new-chat') as any)}>
                     <Text style={styles.newButtonText}>New</Text>
                 </TouchableOpacity>
             </View>
@@ -224,7 +228,7 @@ export default function ChatMessagesScreen() {
                                     <TouchableOpacity style={[styles.acceptBtn, { marginRight: 8 }]} onPress={() => router.push((`/chat/dm/${item.user_id}`) as any)}>
                                         <Text style={{ color: 'white', fontWeight: '700' }}>Message</Text>
                                     </TouchableOpacity>
-                                    <TouchableOpacity style={styles.declineBtn} onPress={() => router.push((`/chat/new?select=${item.user_id}`) as any)}>
+                                    <TouchableOpacity style={styles.declineBtn} onPress={() => router.push((`/chat/new-chat?select=${item.user_id}`) as any)}>
                                         <Text style={{ color: '#4A90E2', fontWeight: '700' }}>Invite</Text>
                                     </TouchableOpacity>
                                 </View>

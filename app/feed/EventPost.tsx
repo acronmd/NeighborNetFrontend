@@ -1,6 +1,6 @@
-import { EventType } from '@/app/data/demoEventData'; // adjust import if needed
-import { useComments } from '@/app/hooks/useComments';
-import { api } from "@/app/lib/api";
+import { EventType } from "../data/_demoEventData"; // adjust import if needed
+import { useComments } from "../hooks/_useComments";
+import { api } from "../lib/_api";
 import CommentInput from '@/components/ui/CommentInput';
 import CommentList from '@/components/ui/CommentList';
 import { useRouter } from 'expo-router';

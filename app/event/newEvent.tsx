@@ -1,4 +1,4 @@
-import { useEvents } from '@/app/data/demoEventData';
+import { useEvents } from "../data/_demoEventData";
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';

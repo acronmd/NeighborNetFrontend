@@ -1,29 +1,98 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Enhanced color palette and design system for NeighborNet
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorLight = '#6366f1'; // Modern indigo
+const tintColorDark = '#818cf8';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#1e293b',
+    textSecondary: '#64748b',
+    textMuted: '#94a3b8',
+    background: '#f8fafc',
+    backgroundCard: '#ffffff',
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    primary: '#6366f1',
+    primaryLight: '#818cf8',
+    primaryDark: '#4f46e5',
+    secondary: '#ec4899',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    icon: '#64748b',
+    tabIconDefault: '#94a3b8',
     tabIconSelected: tintColorLight,
+    border: '#e2e8f0',
+    borderLight: '#f1f5f9',
+    shadow: 'rgba(0, 0, 0, 0.1)',
+    gradient: ['#6366f1', '#8b5cf6', '#ec4899'],
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#f1f5f9',
+    textSecondary: '#cbd5e1',
+    textMuted: '#94a3b8',
+    background: '#0f172a',
+    backgroundCard: '#1e293b',
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    primary: '#818cf8',
+    primaryLight: '#a5b4fc',
+    primaryDark: '#6366f1',
+    secondary: '#f472b6',
+    success: '#34d399',
+    warning: '#fbbf24',
+    error: '#f87171',
+    icon: '#cbd5e1',
+    tabIconDefault: '#64748b',
     tabIconSelected: tintColorDark,
+    border: '#334155',
+    borderLight: '#1e293b',
+    shadow: 'rgba(0, 0, 0, 0.3)',
+    gradient: ['#818cf8', '#a78bfa', '#f472b6'],
+  },
+};
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
+};
+
+export const BorderRadius = {
+  sm: 6,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  full: 9999,
+};
+
+export const Shadows = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
 };
 

@@ -1,9 +1,10 @@
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Alert, Image, Pressable, StyleSheet, Text, View, TextInput, Modal } from "react-native";
-import { ApiPost } from "../types/apiPost";
-import { usePosts } from "../data/demoPostData";
+import { ApiPost } from "../types/_apiPost";
+import { usePosts } from "../data/_demoPostData";
+import { Colors, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 
 export default function Post({ post }: { post: ApiPost }) {
     const router = useRouter();
@@ -17,12 +18,16 @@ export default function Post({ post }: { post: ApiPost }) {
     const [editContent, setEditContent] = useState(post.content);
     const [isLiked, setIsLiked] = useState(false);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+    const [imageLoadError, setImageLoadError] = useState(false);
 
-    // Fix image URL to use actual server IP instead of localhost
+    // Fix image URLs to use actual server IP instead of localhost
     useEffect(() => {
-        const fixImageUrl = async () => {
+        const fixImageUrls = async () => {
+            const ip = await SecureStore.getItemAsync("serverIp");
+            
+            // Fix post image URL
             if (post.post_image) {
-                const ip = await SecureStore.getItemAsync("serverIp");
                 if (ip && post.post_image.includes('localhost')) {
                     const fixedUrl = post.post_image.replace('localhost:5050', ip).replace('localhost', ip);
                     setImageUrl(fixedUrl);
@@ -30,9 +35,38 @@ export default function Post({ post }: { post: ApiPost }) {
                     setImageUrl(post.post_image);
                 }
             }
+            
+            // Fix profile image URL
+            if (post.profile_image) {
+                if (ip && post.profile_image.includes('localhost')) {
+                    const fixedUrl = post.profile_image.replace('localhost:5050', ip).replace('localhost', ip);
+                    setProfileImageUrl(fixedUrl);
+                } else {
+                    setProfileImageUrl(post.profile_image);
+                }
+            }
         };
-        fixImageUrl();
-    }, [post.post_image]);
+        fixImageUrls();
+    }, [post.post_image, post.profile_image]);
+
+    // Check if user already liked this post
+    const checkLikeStatus = useCallback(async () => {
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            const ip = await SecureStore.getItemAsync("serverIp");
+
+            const res = await fetch(`http://${ip}/api/posts/${post.post_id}/like/status`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setIsLiked(data.liked);
+            }
+        } catch (err) {
+            console.error("Failed to check like status:", err);
+        }
+    }, [post.post_id]);
 
     // Check if current user is post owner and like status
     useEffect(() => {
@@ -51,26 +85,7 @@ export default function Post({ post }: { post: ApiPost }) {
         };
         checkOwnership();
         checkLikeStatus();
-    }, [post.user_id]);
-
-    // Check if user already liked this post
-    const checkLikeStatus = async () => {
-        try {
-            const token = await SecureStore.getItemAsync("authToken");
-            const ip = await SecureStore.getItemAsync("serverIp");
-
-            const res = await fetch(`http://${ip}/api/posts/${post.post_id}/like/status`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            const data = await res.json();
-            if (data.success) {
-                setIsLiked(data.liked);
-            }
-        } catch (err) {
-            console.error("Failed to check like status:", err);
-        }
-    };
+    }, [post.user_id, checkLikeStatus]);
 
     // --- LIKE POST ---
     const handleLike = async () => {
@@ -116,7 +131,6 @@ export default function Post({ post }: { post: ApiPost }) {
 
         Alert.alert("Failed to like post");
     };
-
 
     // --- COMMENT ---
     const handleComment = async () => {
@@ -191,15 +205,31 @@ export default function Post({ post }: { post: ApiPost }) {
 
     return (
         <View style={styles.container}>
-
             {/* Header */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.push(`/profile/${post.user_id}` as any)}>
-                    {/* TEMP USER INFO — until backend returns joined user data */}
-                    <Image
-                        source={require("@/assets/images/default-avatar.png")}
-                        style={styles.avatar}
-                    />
+                <Pressable 
+                    onPress={() => router.push(`/profile/${post.user_id}` as any)}
+                    style={styles.avatarPressable}
+                >
+                    <View style={styles.avatarContainer}>
+                        {profileImageUrl ? (
+                            <Image
+                                source={{ uri: profileImageUrl }}
+                                style={styles.avatar}
+                                onError={() => {
+                                    console.log('Profile image failed to load, using default');
+                                    setProfileImageUrl(null);
+                                }}
+                            />
+                        ) : (
+                            <View style={[styles.avatar, styles.defaultAvatar]}>
+                                <Text style={styles.avatarLetter}>
+                                    {post.author_name?.[0]?.toUpperCase() || '?'}
+                                </Text>
+                            </View>
+                        )}
+                        <View style={styles.avatarRing} />
+                    </View>
                 </Pressable>
 
                 <Pressable 
@@ -212,10 +242,10 @@ export default function Post({ post }: { post: ApiPost }) {
 
                 {!isOwner && (
                     <Pressable 
-                        style={styles.followButtonSmall}
+                        style={styles.viewProfileButton}
                         onPress={() => router.push(`/profile/${post.user_id}` as any)}
                     >
-                        <Text style={styles.followButtonSmallText}>View Profile</Text>
+                        <Text style={styles.viewProfileText}>View Profile</Text>
                     </Pressable>
                 )}
             </View>
@@ -223,18 +253,23 @@ export default function Post({ post }: { post: ApiPost }) {
             {/* Content */}
             <Pressable onPress={() => router.push(`/feed/${post.post_id}`)}>
                 <Text style={styles.content}>{post.content}</Text>
-                {imageUrl && (
-                    <Image
-                        source={{ uri: imageUrl }}
-                        style={styles.postImage}
-                        resizeMode="cover"
-                        onError={(e) => {
-                            console.error('Post image load error:', e.nativeEvent.error);
-                            console.log('Failed post image URL:', imageUrl);
-                        }}
-                        onLoad={() => console.log('Post image loaded:', imageUrl)}
-                    />
+                
+                {imageUrl && !imageLoadError && (
+                    <View style={styles.imageContainer}>
+                        <Image
+                            source={{ uri: imageUrl }}
+                            style={styles.postImage}
+                            resizeMode="contain"
+                            onError={(e) => {
+                                console.error('Post image load error:', e.nativeEvent.error);
+                                console.log('Failed post image URL:', imageUrl);
+                                setImageLoadError(true);
+                            }}
+                            onLoad={() => console.log('Post image loaded:', imageUrl)}
+                        />
+                    </View>
                 )}
+                
                 {post.tags && post.tags.length > 0 && (
                     <View style={styles.tagsContainer}>
                         {post.tags.map((tag, index) => (
@@ -244,8 +279,35 @@ export default function Post({ post }: { post: ApiPost }) {
                         ))}
                     </View>
                 )}
-                <View style={styles.separator} />
             </Pressable>
+
+            {/* Divider */}
+            <View style={styles.divider} />
+
+            {/* Actions */}
+            <View style={styles.actions}>
+                <Pressable 
+                    style={styles.actionButton} 
+                    onPress={() => router.push(`/feed/${post.post_id}`)}
+                >
+                    <View style={styles.actionIconContainer}>
+                        <Text style={styles.actionIcon}>💬</Text>
+                    </View>
+                    <Text style={styles.actionText}>{commentsCount}</Text>
+                </Pressable>
+
+                <Pressable 
+                    style={[styles.actionButton, isLiked && styles.likedButton]} 
+                    onPress={handleLike}
+                >
+                    <View style={styles.actionIconContainer}>
+                        <Text style={styles.actionIcon}>{isLiked ? "❤️" : "🤍"}</Text>
+                    </View>
+                    <Text style={[styles.actionText, isLiked && styles.likedText]}>
+                        {likes}
+                    </Text>
+                </Pressable>
+            </View>
 
             {/* Edit/Delete buttons for post owner */}
             {isOwner && (
@@ -259,33 +321,6 @@ export default function Post({ post }: { post: ApiPost }) {
                 </View>
             )}
 
-            {/* Actions */}
-            <View style={styles.actions}>
-                <Pressable style={styles.actionButton} onPress={() => router.push(`/feed/${post.post_id}`)}>
-                    <Text style={styles.actionText}>💬 {commentsCount} Comments</Text>
-                </Pressable>
-
-                <Pressable style={styles.actionButton} onPress={handleLike}>
-                    <Text style={[styles.actionText, isLiked && styles.liked]}>
-                        {isLiked ? "❤️" : "🤍"} {likes}
-                    </Text>
-                </Pressable>
-            </View>
-
-            {/* Reply box
-             <View style={styles.replyContainer}>
-                <TextInput
-                    placeholder="Write a reply..."
-                    style={styles.replyInput}
-                    value={replyText}
-                    onChangeText={setReplyText}
-                />
-                <Pressable onPress={handleComment}>
-                    <Text style={styles.sendButton}>Send</Text>
-                </Pressable>
-            </View>
-             */}
-
             {/* Edit Modal */}
             <Modal visible={isEditing} animationType="slide" transparent={true}>
                 <View style={styles.modalOverlay}>
@@ -297,6 +332,7 @@ export default function Post({ post }: { post: ApiPost }) {
                             onChangeText={setEditContent}
                             multiline
                             placeholder="Edit your post..."
+                            placeholderTextColor={Colors.light.textMuted}
                         />
                         <View style={styles.modalButtons}>
                             <Pressable
@@ -321,193 +357,235 @@ export default function Post({ post }: { post: ApiPost }) {
 
 const styles = StyleSheet.create({
     container: {
-        padding: 16,
-        backgroundColor: "#fff",
-        marginVertical: 10,
-        marginHorizontal: 12,
-        borderRadius: 12,
-        elevation: 3,
+        backgroundColor: Colors.light.backgroundCard,
+        marginHorizontal: Spacing.lg,
+        marginVertical: Spacing.sm,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        ...Shadows.md,
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 12,
+        marginBottom: Spacing.md,
+    },
+    avatarPressable: {
+        marginRight: Spacing.md,
+    },
+    avatarContainer: {
+        position: 'relative',
     },
     avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginRight: 12,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+    },
+    defaultAvatar: {
+        backgroundColor: Colors.light.borderLight,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarLetter: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: Colors.light.primary,
+    },
+    avatarRing: {
+        position: 'absolute',
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        borderWidth: 2,
+        borderColor: Colors.light.primary,
+        top: -2,
+        left: -2,
+        opacity: 0.3,
     },
     displayName: {
-        fontWeight: "bold",
+        fontWeight: "700",
         fontSize: 16,
+        color: Colors.light.text,
+        marginBottom: 2,
     },
     username: {
-        color: "#888",
+        color: Colors.light.textSecondary,
         fontSize: 14,
     },
     userInfo: {
         flex: 1,
     },
-    followButtonSmall: {
-        backgroundColor: "#1DA1F2",
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        marginLeft: "auto",
+    viewProfileButton: {
+        backgroundColor: Colors.light.primary,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.full,
     },
-    followButtonSmallText: {
-        color: "white",
-        fontSize: 12,
+    viewProfileText: {
+        color: Colors.light.backgroundCard,
+        fontSize: 13,
         fontWeight: "600",
     },
     content: {
-        fontSize: 16,
-        marginBottom: 12,
+        fontSize: 15,
+        lineHeight: 22,
+        color: Colors.light.text,
+        marginBottom: Spacing.md,
     },
-    actions: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-        marginVertical: 6,
-    },
-    actionButton: {
-        padding: 8,
-        backgroundColor: "#f2f2f2",
-        borderRadius: 6,
-    },
-    actionText: {
-        color: "#1DA1F2",
-        fontWeight: "600",
-    },
-    liked: {
-        color: "#E74C3C",
-    },
-    replyContainer: {
-        flexDirection: "row",
-        gap: 8,
-    },
-    replyInput: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: "#ddd",
-        borderRadius: 6,
-        padding: 8,
-    },
-    sendButton: {
-        color: "#1DA1F2",
-        fontWeight: "600",
-        alignSelf: "center",
-    },
-    separator: {
-        height: 1,
-        backgroundColor: '#e1e8ed',
-        marginVertical: 4,
+    imageContainer: {
+        borderRadius: BorderRadius.md,
+        overflow: 'hidden',
+        marginBottom: Spacing.md,
+        ...Shadows.sm,
     },
     postImage: {
         width: '100%',
-        height: 250,
-        borderRadius: 12,
-        marginTop: 12,
-        marginBottom: 8,
+        height: undefined,
+        aspectRatio: 1,
+        maxHeight: 500,
     },
     tagsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
-        marginTop: 8,
-        marginBottom: 8,
+        gap: Spacing.sm,
+        marginBottom: Spacing.sm,
     },
     tag: {
-        backgroundColor: '#E8F5FD',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
+        backgroundColor: Colors.light.borderLight,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
+        borderRadius: BorderRadius.full,
         borderWidth: 1,
-        borderColor: '#1DA1F2',
+        borderColor: Colors.light.border,
     },
     tagText: {
-        color: '#1DA1F2',
-        fontSize: 12,
+        color: Colors.light.primary,
+        fontSize: 13,
         fontWeight: '600',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: Colors.light.border,
+        marginVertical: Spacing.md,
+    },
+    actions: {
+        flexDirection: "row",
+        gap: Spacing.md,
+    },
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        backgroundColor: Colors.light.borderLight,
+        borderRadius: BorderRadius.full,
+        gap: Spacing.xs,
+    },
+    likedButton: {
+        backgroundColor: '#FEE2E2',
+    },
+    actionIconContainer: {
+        width: 24,
+        height: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    actionIcon: {
+        fontSize: 18,
+    },
+    actionText: {
+        color: Colors.light.textSecondary,
+        fontWeight: "600",
+        fontSize: 14,
+    },
+    likedText: {
+        color: Colors.light.error,
     },
     ownerActions: {
         flexDirection: "row",
         justifyContent: "flex-end",
-        marginTop: 8,
-        gap: 8,
+        marginTop: Spacing.md,
+        gap: Spacing.sm,
     },
     editButton: {
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        backgroundColor: "#4A90E2",
-        borderRadius: 6,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        backgroundColor: Colors.light.primary,
+        borderRadius: BorderRadius.md,
     },
     editButtonText: {
-        color: "white",
+        color: Colors.light.backgroundCard,
         fontWeight: "600",
         fontSize: 14,
     },
     deleteButton: {
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        backgroundColor: "#E74C3C",
-        borderRadius: 6,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        backgroundColor: Colors.light.error,
+        borderRadius: BorderRadius.md,
     },
     deleteButtonText: {
-        color: "white",
+        color: Colors.light.backgroundCard,
         fontWeight: "600",
         fontSize: 14,
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.5)",
+        backgroundColor: "rgba(0,0,0,0.6)",
         justifyContent: "center",
         alignItems: "center",
     },
     modalContent: {
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 20,
+        backgroundColor: Colors.light.backgroundCard,
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.xxl,
         width: "90%",
         maxWidth: 400,
+        ...Shadows.lg,
     },
     modalTitle: {
-        fontSize: 20,
-        fontWeight: "bold",
-        marginBottom: 16,
+        fontSize: 22,
+        fontWeight: "700",
+        color: Colors.light.text,
+        marginBottom: Spacing.lg,
     },
     editInput: {
         borderWidth: 1,
-        borderColor: "#ddd",
-        borderRadius: 8,
-        padding: 12,
-        minHeight: 100,
+        borderColor: Colors.light.border,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.md,
+        minHeight: 120,
         textAlignVertical: "top",
-        marginBottom: 16,
+        marginBottom: Spacing.lg,
+        fontSize: 15,
+        color: Colors.light.text,
+        backgroundColor: Colors.light.background,
     },
     modalButtons: {
         flexDirection: "row",
         justifyContent: "flex-end",
-        gap: 12,
+        gap: Spacing.md,
     },
     modalButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 8,
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.xl,
+        borderRadius: BorderRadius.md,
+        minWidth: 90,
+        alignItems: 'center',
     },
     cancelButton: {
-        backgroundColor: "#95a5a6",
+        backgroundColor: Colors.light.textMuted,
     },
     cancelButtonText: {
-        color: "white",
+        color: Colors.light.backgroundCard,
         fontWeight: "600",
+        fontSize: 15,
     },
     saveButton: {
-        backgroundColor: "#4A90E2",
+        backgroundColor: Colors.light.primary,
     },
     saveButtonText: {
-        color: "white",
+        color: Colors.light.backgroundCard,
         fontWeight: "600",
+        fontSize: 15,
     },
 });

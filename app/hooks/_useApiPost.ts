@@ -1,7 +1,7 @@
 // hooks/useApiPost.ts
 import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
-import { ApiPost } from "../types/apiPost";
+import { ApiPost } from "../types/_apiPost";
 import {json} from "node:stream/consumers";
 
 export function useApiPost(postId: number) {

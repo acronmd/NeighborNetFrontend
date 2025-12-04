@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
-import { useApiPost } from "@/app/hooks/useApiPost";
-import { useComments } from "@/app/hooks/useComments";
+import { useApiPost } from "../hooks/_useApiPost";
+import { useComments } from "../hooks/_useComments";
 import * as SecureStore from "expo-secure-store";
 
 export default function PostDetailScreen() {

@@ -1,5 +1,5 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, ActivityIndicator } from 'react-native';
-import { usePosts } from '@/app/data/demoPostData';
+import { usePosts } from '@/app/data/_demoPostData';
 import { useState } from 'react';
 import React from 'react';
 import * as ImagePicker from 'expo-image-picker';

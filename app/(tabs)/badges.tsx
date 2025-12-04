@@ -10,7 +10,7 @@ import {
     Alert,
     Modal
 } from 'react-native';
-import { api } from '../lib/api';
+import { api } from "../lib/_api";
 import * as SecureStore from 'expo-secure-store';
 
 type Badge = {

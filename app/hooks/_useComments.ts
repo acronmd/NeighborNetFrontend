@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../lib/api"; // your API wrapper
+import { api } from "../lib/_api"; // your API wrapper
 
 export type Comment = {
     comment_id: number;

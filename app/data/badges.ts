@@ -1,9 +1,9 @@
 
 const badges = {
-        incidentReporter: require("@/assets/images/badges/incident.png"),
-        verifiedReporter: require("@/assets/images/badges/verified.png"),
-        communityHelper: require("@/assets/images/badges/community.png"),
-        eventParticipant: require("@/assets/images/badges/event.png"),
+        incidentReporter: require("@/assets/images/incident.png"),
+        verifiedReporter: require("@/assets/images/verified.png"),
+        communityHelper: require("@/assets/images/community.png"),
+        eventParticipant: require("@/assets/images/event.png"),
       };
       
       export default badges;

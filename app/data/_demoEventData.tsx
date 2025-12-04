@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
-import { api } from "../lib/api";
+import { api } from "../lib/_api";
 
 export type EventType = {
     post_id: number;

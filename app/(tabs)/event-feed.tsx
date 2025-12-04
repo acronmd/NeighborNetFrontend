@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect} from "react";
 import { FlatList, View, Text, ActivityIndicator } from "react-native";
 import EventPost from "@/app/feed/EventPost";
-import { useEvents } from "@/app/data/demoEventData";
+import { useEvents } from "../data/_demoEventData";
 import {useFocusEffect} from "expo-router";
 import {useIsFocused} from "@react-navigation/core";
 
