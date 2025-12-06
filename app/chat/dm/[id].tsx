@@ -156,10 +156,94 @@ export default function DMThread() {
 			}
 		} catch (err: any) {
 			console.error('Send direct message failed:', err.message || 'Unknown error');
+			Alert.alert('Error', 'Failed to send message. Please try again.');
 			setText(messageContent); // Restore text on error
 		} finally {
 			setSending(false);
 		}
+	};
+
+	const handleDeleteMessage = (messageId: number) => {
+		Alert.alert(
+			'Delete Message',
+			'Are you sure you want to delete this message?',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Delete',
+					style: 'destructive',
+					onPress: async () => {
+						try {
+							await api(`/direct/messages/${messageId}`, { method: 'DELETE' });
+							setMessages(prev => prev.filter(m => m.message_id !== messageId));
+						} catch (err: any) {
+							Alert.alert('Error', 'Failed to delete message');
+						}
+					}
+				}
+			]
+		);
+	};
+
+	const handleEditMessage = (messageId: number, currentContent: string) => {
+		Alert.prompt(
+			'Edit Message',
+			'Enter new message:',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Save',
+					onPress: async (newContent) => {
+						if (!newContent || !newContent.trim()) return;
+						
+						try {
+							await api(`/direct/messages/${messageId}`, {
+								method: 'PATCH',
+								body: JSON.stringify({ content: newContent.trim() })
+							});
+							
+							// Update local state
+							setMessages(prev => prev.map(m => 
+								m.message_id === messageId 
+									? { ...m, content: newContent.trim(), is_edited: true, edited_at: new Date().toISOString() }
+									: m
+							));
+						} catch (err: any) {
+							Alert.alert('Error', err.message || 'Failed to edit message');
+						}
+					}
+				}
+			],
+			'plain-text',
+			currentContent
+		);
+	};
+
+	const handleMessageLongPress = (message: DMMessage) => {
+		const isSelf = currentUserId === message.sender_id;
+		if (!isSelf) return; // Can only edit/delete own messages
+
+		const options = ['Edit Message', 'Delete Message', 'Cancel'];
+		
+		Alert.alert(
+			'Message Options',
+			'',
+			[
+				{
+					text: 'Edit Message',
+					onPress: () => handleEditMessage(message.message_id, message.content)
+				},
+				{
+					text: 'Delete Message',
+					style: 'destructive',
+					onPress: () => handleDeleteMessage(message.message_id)
+				},
+				{
+					text: 'Cancel',
+					style: 'cancel'
+				}
+			]
+		);
 	};
 
 	if (loading) {
@@ -251,7 +335,12 @@ export default function DMThread() {
 						renderItem={({ item }) => {
 							const isSelf = currentUserId ? item.sender_id === currentUserId : item.sender_id !== otherId;
 							return (
-								<View style={[styles.messageRow, isSelf ? styles.messageRowSelf : undefined]}>
+								<TouchableOpacity
+									style={[styles.messageRow, isSelf ? styles.messageRowSelf : undefined]}
+									onLongPress={() => handleMessageLongPress(item)}
+									activeOpacity={isSelf ? 0.7 : 1}
+									disabled={!isSelf}
+								>
 									{!isSelf && item.sender_image && (
 										<Image 
 											source={{ uri: item.sender_image }} 
@@ -266,13 +355,14 @@ export default function DMThread() {
 										<View style={styles.messageFooter}>
 											<Text style={[styles.time, isSelf ? styles.timeSelf : undefined]}>
 												{new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+												{(item as any).is_edited && ' (edited)'}
 											</Text>
 											{isSelf && item.is_read && (
 												<Text style={styles.readReceipt}>✓✓</Text>
 											)}
 										</View>
 									</View>
-								</View>
+								</TouchableOpacity>
 							);
 						}}
 						contentContainerStyle={{ padding: 12, paddingBottom: 20 }}
