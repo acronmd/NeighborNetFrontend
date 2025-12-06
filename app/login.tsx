@@ -6,13 +6,16 @@ import { useRouter } from "expo-router"; // if using expo-router
 export default function LoginScreen() {
     const router = useRouter();
 
-    const [ip, setIp] = useState("");
+    const [ip, setIp] = useState("192.168.1.205:5050");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [showResendOption, setShowResendOption] = useState(false);
+    const [isResending, setIsResending] = useState(false);
 
     const handleLogin = async () => {
         setError("");
+        setShowResendOption(false);
 
         if (!ip || !email || !password) {
             setError("All fields are required");
@@ -29,7 +32,13 @@ export default function LoginScreen() {
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.message || "Login failed");
+                const errorMessage = data.message || "Login failed";
+                setError(errorMessage);
+                
+                // Check if error is due to unverified email
+                if (errorMessage.toLowerCase().includes('verify your email')) {
+                    setShowResendOption(true);
+                }
                 return;
             }
 
@@ -42,6 +51,41 @@ export default function LoginScreen() {
         } catch (err) {
             console.error(err);
             setError("Network error. Check IP or server status.");
+        }
+    };
+
+    const handleResendVerification = async () => {
+        if (!email) {
+            Alert.alert("Error", "Please enter your email address");
+            return;
+        }
+
+        setIsResending(true);
+        try {
+            const res = await fetch(`http://${ip}/api/auth/resend-verification`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                Alert.alert(
+                    "Email Sent!",
+                    "A new verification link has been sent to your email. Please check your inbox (and spam folder).",
+                    [{ text: "OK" }]
+                );
+                setShowResendOption(false);
+                setError("");
+            } else {
+                Alert.alert("Error", data.message || "Failed to resend verification email");
+            }
+        } catch (err) {
+            console.error(err);
+            Alert.alert("Error", "Network error. Failed to resend verification email.");
+        } finally {
+            setIsResending(false);
         }
     };
 
@@ -81,6 +125,18 @@ export default function LoginScreen() {
                 <Text style={styles.buttonText}>Log In</Text>
             </Pressable>
 
+            {showResendOption && (
+                <Pressable
+                    style={[styles.resendButton, isResending && styles.resendButtonDisabled]}
+                    onPress={handleResendVerification}
+                    disabled={isResending}
+                >
+                    <Text style={styles.resendButtonText}>
+                        {isResending ? "Sending..." : "📧 Resend Verification Email"}
+                    </Text>
+                </Pressable>
+            )}
+
             <View style={styles.linksRow}>
                 <Pressable onPress={() => router.push("/forgot-password" as any)}>
                     <Text style={styles.linkText}>Forgot Password?</Text>
@@ -90,8 +146,12 @@ export default function LoginScreen() {
                 </Pressable>
             </View>
 
+            <Pressable onPress={() => router.push("/resend-verification" as any)} style={styles.linkContainer}>
+                <Text style={styles.linkText}>Resend Verification Email</Text>
+            </Pressable>
+
             <Pressable onPress={() => router.push("/signup")} style={styles.linkContainer}>
-                <Text style={styles.linkText}>Don't have an account? Sign up</Text>
+                <Text style={styles.linkText}>{"Don't have an account? Sign up"}</Text>
             </Pressable>
         </View>
     );
@@ -148,5 +208,20 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginTop: 16,
         paddingHorizontal: 8,
+    },
+    resendButton: {
+        backgroundColor: "#27AE60",
+        padding: 14,
+        borderRadius: 8,
+        marginTop: 12,
+    },
+    resendButtonDisabled: {
+        backgroundColor: "#666",
+    },
+    resendButtonText: {
+        textAlign: "center",
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 16,
     },
 });

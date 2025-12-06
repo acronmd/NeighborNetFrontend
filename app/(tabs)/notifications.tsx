@@ -24,6 +24,68 @@ type Notification = {
     created_at: string;
 };
 
+// Mock notifications for testing (remove when backend is ready)
+const MOCK_NOTIFICATIONS: Notification[] = [
+    {
+        notification_id: 1,
+        user_id: 1,
+        type: 'post_like',
+        title: 'New Like',
+        message: 'John Doe liked your post about the community garden',
+        related_id: 123,
+        is_read: false,
+        created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
+    },
+    {
+        notification_id: 2,
+        user_id: 1,
+        type: 'post_comment',
+        title: 'New Comment',
+        message: 'Jane Smith commented on your post',
+        related_id: 123,
+        is_read: false,
+        created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+    },
+    {
+        notification_id: 3,
+        user_id: 1,
+        type: 'event_rsvp',
+        title: 'New RSVP',
+        message: '5 people RSVPed to your Community Cleanup event',
+        related_id: 456,
+        is_read: true,
+        created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+    },
+    {
+        notification_id: 4,
+        user_id: 1,
+        type: 'event_reminder',
+        title: 'Event Reminder',
+        message: 'Block Party starts in 1 hour',
+        related_id: 789,
+        is_read: false,
+        created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 mins ago
+    },
+    {
+        notification_id: 5,
+        user_id: 1,
+        type: 'badge_earned',
+        title: 'Badge Earned!',
+        message: 'You earned the "Community Helper" badge',
+        is_read: false,
+        created_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), // 3 hours ago
+    },
+    {
+        notification_id: 6,
+        user_id: 1,
+        type: 'contact_request',
+        title: 'New Contact Request',
+        message: 'Alex Johnson wants to connect with you',
+        is_read: true,
+        created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
+    },
+];
+
 export default function NotificationsScreen() {
     const router = useRouter();
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -53,12 +115,28 @@ export default function NotificationsScreen() {
 
     const fetchNotifications = async () => {
         try {
-            const data = await api('/notifications?limit=50');
+            const data = await api('/api/notifications?limit=50');
             setNotifications(data.notifications || []);
         } catch (err: any) {
             console.error('Failed to fetch notifications:', err);
-            // Silently fail - show empty state instead of crashing
-            // User will see "No notifications yet" message
+            
+            // Check if it's a 404 or endpoint not found error
+            const errorMsg = err.message?.toLowerCase() || '';
+            const isEndpointMissing = errorMsg.includes('404') || 
+                                     errorMsg.includes('not found') || 
+                                     errorMsg.includes('route not found');
+            
+            if (isEndpointMissing) {
+                // Use mock data when backend endpoint is not available
+                console.log('Using mock notifications - backend endpoint not available yet');
+                setNotifications(MOCK_NOTIFICATIONS);
+            } else {
+                // Show error for other issues
+                Alert.alert(
+                    'Connection Error',
+                    `Failed to load notifications: ${err.message || 'Unknown error'}`
+                );
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -72,7 +150,7 @@ export default function NotificationsScreen() {
 
     const markAsRead = async (notificationId: number) => {
         try {
-            await api(`/notifications/${notificationId}/read`, {
+            await api(`/api/notifications/${notificationId}/read`, {
                 method: 'PATCH',
             });
             setNotifications(prev =>
@@ -87,7 +165,7 @@ export default function NotificationsScreen() {
 
     const markAllAsRead = async () => {
         try {
-            await api('/notifications/read-all', {
+            await api('/api/notifications/read-all', {
                 method: 'PATCH',
             });
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
@@ -99,7 +177,7 @@ export default function NotificationsScreen() {
 
     const deleteNotification = async (notificationId: number) => {
         try {
-            await api(`/notifications/${notificationId}`, {
+            await api(`/api/notifications/${notificationId}`, {
                 method: 'DELETE',
             });
             setNotifications(prev => prev.filter(n => n.notification_id !== notificationId));
@@ -119,7 +197,7 @@ export default function NotificationsScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await api('/notifications/clear-read', {
+                            await api('/api/notifications/clear-read', {
                                 method: 'DELETE',
                             });
                             setNotifications(prev => prev.filter(n => !n.is_read));

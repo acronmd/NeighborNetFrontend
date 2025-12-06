@@ -26,27 +26,8 @@ const NotificationsContext = createContext<NotificationsContextValue | undefined
   undefined
 );
 
-// fake data for now (later you can replace with real backend data)
-const initialAlerts: Alert[] = [
-  {
-    id: 1,
-    userId: 1,
-    title: "New incident reported near you.",
-    message: "A neighbor just reported an incident in your area.",
-    createdAt: "2025-11-27T10:00:00",
-    type: "incident",
-    isRead: false,
-  },
-  {
-    id: 2,
-    userId: 1,
-    title: "Community clean-up event starts in 1 hour.",
-    message: "Don’t forget to bring gloves and water.",
-    createdAt: "2025-11-27T11:00:00",
-    type: "event",
-    isRead: false,
-  },
-];
+// Empty array - will be populated with real backend data
+const initialAlerts: Alert[] = [];
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [alerts, setAlerts] = useState<Alert[]>(initialAlerts);

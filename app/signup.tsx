@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 
 export default function SignupScreen() {
     const router = useRouter();
@@ -15,6 +16,31 @@ export default function SignupScreen() {
     const [street, setStreet] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    const handleResendVerification = async () => {
+        try {
+            const res = await fetch(`http://${ip}/api/auth/resend-verification`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                Alert.alert(
+                    "Email Sent!",
+                    "A new verification link has been sent to your email. Please check your inbox (and spam folder).",
+                    [{ text: "OK" }]
+                );
+            } else {
+                Alert.alert("Error", data.message || "Failed to resend verification email");
+            }
+        } catch (err) {
+            console.error(err);
+            Alert.alert("Error", "Network error. Failed to resend verification email.");
+        }
+    };
 
     const handleSignup = async () => {
         setError("");
@@ -59,6 +85,9 @@ export default function SignupScreen() {
                 return;
             }
 
+            // Save IP for future use
+            await SecureStore.setItemAsync("serverIp", ip);
+
             Alert.alert(
                 "Account Created!", 
                 "Your account has been created successfully. A verification email has been sent to your email address. Please verify your email before logging in.",
@@ -66,6 +95,11 @@ export default function SignupScreen() {
                     {
                         text: "OK",
                         onPress: () => router.replace("/login"),
+                    },
+                    {
+                        text: "Didn't receive email?",
+                        onPress: handleResendVerification,
+                        style: "default",
                     },
                 ]
             );
