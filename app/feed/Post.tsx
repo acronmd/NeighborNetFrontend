@@ -133,7 +133,7 @@ export default function Post({ post }: { post: ApiPost }) {
     };
 
     // --- COMMENT ---
-    // const handleComment = async () => {
+    // `const handleComment = async () => {
     //     if (!replyText.trim()) return;
     //
     //     const token = await SecureStore.getItemAsync("authToken");
@@ -157,7 +157,7 @@ export default function Post({ post }: { post: ApiPost }) {
     //     } else {
     //         Alert.alert("Failed to comment");
     //     }
-    // };
+    // };`
 
     // --- DELETE POST ---
     const handleDelete = async () => {

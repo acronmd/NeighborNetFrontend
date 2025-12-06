@@ -2,18 +2,18 @@ import React, {useCallback, useEffect} from "react";
 import { FlatList, View, Text, ActivityIndicator } from "react-native";
 import EventPost from "@/app/feed/EventPost";
 import { useEvents } from "../data/_demoEventData";
-import {useFocusEffect} from "expo-router";
-import {useIsFocused} from "@react-navigation/core";
+import FeedSwitcher from "@/components/feed-switcher";
+import { useFocusEffect } from "expo-router";
 
 export default function EventFeedScreen() {
     const { events, refreshEvents } = useEvents();
-    const isFocused = useIsFocused();
 
-    useEffect(() => {
-        if (isFocused) {
+    useFocusEffect(
+        React.useCallback(() => {
             refreshEvents();
-        }
-    }, [isFocused]);
+        }, [])
+    );
+
 
     if (!events) {
         return (
@@ -32,12 +32,22 @@ export default function EventFeedScreen() {
     }
 
     return (
-        <FlatList
-            data={events}
-            keyExtractor={(item) => String(item.event_id)}
-            renderItem={({ item }) => <EventPost {...item} id={item.event_id} />}
-            onRefresh={refreshEvents}
-            refreshing={false}
-        />
+        <View>
+            <FeedSwitcher />
+            <FlatList
+                data={events}
+                keyExtractor={(item) => String(item.event_id)}
+                renderItem={({ item }) => <EventPost {...item} id={item.event_id} />}
+                onRefresh={refreshEvents}
+                refreshing={false}
+            />
+        </View>
+
+
+
     );
 }
+
+
+
+

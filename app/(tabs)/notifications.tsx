@@ -12,8 +12,10 @@ import {
 import { api } from "../lib/_api";
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import {useSearchParams} from "expo-router/build/hooks";
+import { notificationEmitter } from '@/app/emitter/notificationEmitter';
 
-type Notification = {
+export type Notification = {
     notification_id: number;
     user_id: number;
     type: string;
@@ -158,6 +160,7 @@ export default function NotificationsScreen() {
                     n.notification_id === notificationId ? { ...n, is_read: true } : n
                 )
             );
+            notificationEmitter.emit();
         } catch (err) {
             console.error('Failed to mark as read:', err);
         }
@@ -170,6 +173,7 @@ export default function NotificationsScreen() {
             });
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
             Alert.alert('Success', 'All notifications marked as read');
+            notificationEmitter.emit();
         } catch (err) {
             Alert.alert('Error', 'Failed to mark all as read');
         }
@@ -181,6 +185,7 @@ export default function NotificationsScreen() {
                 method: 'DELETE',
             });
             setNotifications(prev => prev.filter(n => n.notification_id !== notificationId));
+            notificationEmitter.emit();
         } catch (err) {
             Alert.alert('Error', 'Failed to delete notification');
         }
@@ -209,6 +214,7 @@ export default function NotificationsScreen() {
                 },
             ]
         );
+        notificationEmitter.emit();
     };
 
     const handleNotificationPress = async (notification: Notification) => {
@@ -284,12 +290,7 @@ export default function NotificationsScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Notifications</Text>
-                {unreadCount > 0 && (
-                    <View style={styles.unreadBadgeHeader}>
-                        <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
-                    </View>
-                )}
+                <Text style={styles.headerTitle}>{unreadCount} Unread Notifications</Text>
             </View>
 
             {notifications.length > 0 && (
