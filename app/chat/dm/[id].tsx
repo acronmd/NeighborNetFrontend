@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from "../../lib/_api";
+import { useFocusEffect } from '@react-navigation/native';
 
 type DMMessage = {
 	message_id: number;
@@ -10,6 +11,15 @@ type DMMessage = {
 	sender_id: number;
 	receiver_id: number;
 	sender_name?: string;
+	sender_username?: string;
+	sender_image?: string;
+	is_read?: boolean;
+};
+
+type UserStatus = {
+	user_id: number;
+	is_online: boolean;
+	last_seen: string;
 };
 
 export default function DMThread() {
@@ -20,12 +30,16 @@ export default function DMThread() {
 	const [text, setText] = useState('');
 	const [otherUserName, setOtherUserName] = useState('');
 	const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+	const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
 	const flatRef = useRef<any>(null);
 	const [loading, setLoading] = useState(true);
 	const [sending, setSending] = useState(false);
+	const [hasMore, setHasMore] = useState(true);
+	const [loadingMore, setLoadingMore] = useState(false);
+	const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
+	// Get current user ID
 	useEffect(() => {
-		// Get current user ID
 		(async () => {
 			try {
 				const me = await api('/users/profile', { method: 'GET' });
@@ -34,28 +48,94 @@ export default function DMThread() {
 				console.warn('Failed to fetch current user', err);
 			}
 		})();
+	}, []);
 
-		// Load messages
-		(async () => {
-			try {
-				const json = await api(`/direct/${otherId}/messages`, { method: 'GET' });
-				setMessages(json.messages || []);
-				
-				// Get other user's name from first message
-				if (json.messages && json.messages.length > 0) {
-					const firstMsg = json.messages[0];
-					const name = firstMsg.sender_id === otherId ? firstMsg.sender_name : 'User';
-					setOtherUserName(name || 'User');
-				}
-				
+	// Fetch messages function
+	const fetchMessages = async (silent = false) => {
+		try {
+			const json = await api(`/direct/${otherId}/messages?limit=50`, { method: 'GET' });
+			setMessages(json.messages || []);
+			
+			// Get other user's name from first message or API
+			if (json.messages && json.messages.length > 0) {
+				const firstMsg = json.messages[0];
+				const name = firstMsg.sender_id === otherId ? firstMsg.sender_name : 'User';
+				setOtherUserName(name || 'User');
+			}
+			
+			if (!silent) {
 				setTimeout(() => flatRef.current?.scrollToEnd?.({ animated: false }), 100);
-			} catch (err: any) {
-				console.error('Failed to load direct messages:', err.message || 'Unknown error');
-			} finally {
+			}
+		} catch (err: any) {
+			console.error('Failed to load direct messages:', err.message || 'Unknown error');
+			if (!silent) {
+				Alert.alert('Error', 'Failed to load messages');
+			}
+		} finally {
+			if (!silent) {
 				setLoading(false);
 			}
-		})();
+		}
+	};
+
+	// Fetch user online status
+	const fetchUserStatus = async () => {
+		try {
+			const status = await api(`/direct/user/${otherId}/status`, { method: 'GET' });
+			setUserStatus(status);
+		} catch (err) {
+			console.warn('Failed to fetch user status:', err);
+		}
+	};
+
+	// Mark messages as read
+	const markMessagesAsRead = async () => {
+		try {
+			const unreadMessages = messages.filter(m => 
+				!m.is_read && m.sender_id === otherId
+			);
+			
+			for (const msg of unreadMessages) {
+				try {
+					await api(`/direct/messages/${msg.message_id}/read`, { method: 'PATCH' });
+				} catch (err) {
+					console.warn('Failed to mark message as read:', err);
+				}
+			}
+		} catch (err) {
+			console.warn('Failed to mark messages as read:', err);
+		}
+	};
+
+	// Initial load
+	useEffect(() => {
+		fetchMessages();
+		fetchUserStatus();
 	}, [otherId]);
+
+	// Real-time polling when screen is focused
+	useFocusEffect(
+		React.useCallback(() => {
+			// Start polling
+			pollingInterval.current = setInterval(() => {
+				fetchMessages(true); // Silent refresh
+			}, 5000); // Poll every 5 seconds
+
+			// Check status every 30 seconds
+			const statusInterval = setInterval(fetchUserStatus, 30000);
+
+			// Mark messages as read when viewing
+			markMessagesAsRead();
+
+			// Cleanup
+			return () => {
+				if (pollingInterval.current) {
+					clearInterval(pollingInterval.current);
+				}
+				clearInterval(statusInterval);
+			};
+		}, [otherId, messages])
+	);
 
 	const send = async () => {
 		if (!text.trim() || sending) return;
@@ -91,6 +171,42 @@ export default function DMThread() {
 		);
 	}
 
+	const loadMoreMessages = async () => {
+		if (!hasMore || loadingMore) return;
+		
+		setLoadingMore(true);
+		try {
+			const oldestMessageId = messages[0]?.message_id;
+			if (!oldestMessageId) return;
+			
+			const json = await api(`/direct/${otherId}/messages?limit=50&before=${oldestMessageId}`, { method: 'GET' });
+			
+			if (json.messages && json.messages.length > 0) {
+				setMessages(prev => [...json.messages, ...prev]);
+			} else {
+				setHasMore(false);
+			}
+		} catch (err: any) {
+			console.warn('Failed to load more messages:', err);
+		} finally {
+			setLoadingMore(false);
+		}
+	};
+
+	const formatLastSeen = (lastSeen: string) => {
+		const now = new Date();
+		const lastSeenDate = new Date(lastSeen);
+		const diffMs = now.getTime() - lastSeenDate.getTime();
+		const diffMins = Math.floor(diffMs / 60000);
+		
+		if (diffMins < 1) return 'Just now';
+		if (diffMins < 60) return `${diffMins}m ago`;
+		const diffHours = Math.floor(diffMins / 60);
+		if (diffHours < 24) return `${diffHours}h ago`;
+		const diffDays = Math.floor(diffHours / 24);
+		return `${diffDays}d ago`;
+	};
+
 	return (
 		<KeyboardAvoidingView 
 			style={{ flex: 1 }} 
@@ -98,6 +214,29 @@ export default function DMThread() {
 			keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
 		>
 			<View style={styles.container}>
+				{/* Header with online status */}
+				{otherUserName && (
+					<View style={styles.header}>
+						<View style={styles.headerContent}>
+							<Text style={styles.headerTitle}>{otherUserName}</Text>
+							{userStatus && (
+								<View style={styles.statusContainer}>
+									{userStatus.is_online ? (
+										<>
+											<View style={styles.onlineDot} />
+											<Text style={styles.statusText}>Active now</Text>
+										</>
+									) : (
+										<Text style={styles.statusText}>
+											Last seen {formatLastSeen(userStatus.last_seen)}
+										</Text>
+									)}
+								</View>
+							)}
+						</View>
+					</View>
+				)}
+
 				{messages.length === 0 ? (
 					<View style={styles.emptyContainer}>
 						<Text style={styles.emptyIcon}>💬</Text>
@@ -113,19 +252,34 @@ export default function DMThread() {
 							const isSelf = currentUserId ? item.sender_id === currentUserId : item.sender_id !== otherId;
 							return (
 								<View style={[styles.messageRow, isSelf ? styles.messageRowSelf : undefined]}>
+									{!isSelf && item.sender_image && (
+										<Image 
+											source={{ uri: item.sender_image }} 
+											style={styles.avatar}
+											onError={() => console.log('Failed to load avatar')}
+										/>
+									)}
 									<View style={[styles.bubble, isSelf ? styles.bubbleSelf : styles.bubbleOther]}>
 										<Text style={[styles.messageText, isSelf ? styles.messageTextSelf : undefined]}>
 											{item.content}
 										</Text>
-										<Text style={[styles.time, isSelf ? styles.timeSelf : undefined]}>
-											{new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-										</Text>
+										<View style={styles.messageFooter}>
+											<Text style={[styles.time, isSelf ? styles.timeSelf : undefined]}>
+												{new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+											</Text>
+											{isSelf && item.is_read && (
+												<Text style={styles.readReceipt}>✓✓</Text>
+											)}
+										</View>
 									</View>
 								</View>
 							);
 						}}
 						contentContainerStyle={{ padding: 12, paddingBottom: 20 }}
 						onContentSizeChange={() => flatRef.current?.scrollToEnd?.({ animated: false })}
+						onEndReached={loadMoreMessages}
+						onEndReachedThreshold={0.1}
+						ListFooterComponent={loadingMore ? <ActivityIndicator style={{ marginVertical: 10 }} /> : null}
 					/>
 				)}
 
@@ -170,6 +324,42 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: '#657786'
 	},
+	header: {
+		backgroundColor: 'white',
+		borderBottomWidth: 1,
+		borderBottomColor: '#e1e8ed',
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.05,
+		shadowRadius: 3,
+		elevation: 2
+	},
+	headerContent: {
+		alignItems: 'center'
+	},
+	headerTitle: {
+		fontSize: 18,
+		fontWeight: '700',
+		color: '#14171a',
+		marginBottom: 4
+	},
+	statusContainer: {
+		flexDirection: 'row',
+		alignItems: 'center'
+	},
+	onlineDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+		backgroundColor: '#4CAF50',
+		marginRight: 6
+	},
+	statusText: {
+		fontSize: 13,
+		color: '#657786'
+	},
 	emptyContainer: {
 		flex: 1,
 		justifyContent: 'center',
@@ -192,15 +382,26 @@ const styles = StyleSheet.create({
 		textAlign: 'center'
 	},
 	messageRow: { 
-		alignItems: 'flex-start', 
+		flexDirection: 'row',
+		alignItems: 'flex-end',
 		marginBottom: 8,
 		paddingHorizontal: 4
 	},
-	messageRowSelf: { alignItems: 'flex-end' },
+	messageRowSelf: { 
+		flexDirection: 'row-reverse'
+	},
+	avatar: {
+		width: 32,
+		height: 32,
+		borderRadius: 16,
+		marginRight: 8,
+		marginBottom: 4,
+		backgroundColor: '#dfe7ef'
+	},
 	bubble: { 
 		padding: 12,
 		borderRadius: 18,
-		maxWidth: '80%',
+		maxWidth: '75%',
 		shadowColor: '#000',
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.1,
@@ -223,14 +424,23 @@ const styles = StyleSheet.create({
 	messageTextSelf: {
 		color: 'white'
 	},
+	messageFooter: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginTop: 4,
+		gap: 4
+	},
 	time: { 
 		fontSize: 11,
-		color: '#95a5a6',
-		marginTop: 4,
-		alignSelf: 'flex-end'
+		color: '#95a5a6'
 	},
 	timeSelf: {
 		color: '#e6f0ff'
+	},
+	readReceipt: {
+		fontSize: 12,
+		color: '#e6f0ff',
+		fontWeight: '600'
 	},
 	composer: { 
 		flexDirection: 'row',
