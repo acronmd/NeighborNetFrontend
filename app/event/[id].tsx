@@ -20,6 +20,7 @@ export default function EventDetailScreen() {
     const event = events.find((e: EventType & { event_id: number }) => e.event_id === eventId);
 
     const [authorName, setAuthorName] = useState<string | null>(null);
+    const [authorUsername, setAuthorUsername] = useState<string | null>(null);
     const [attendees, setAttendees] = useState<Attendee[]>([]);
     const [isSignedUp, setIsSignedUp] = useState(false);
     const [loadingAttendees, setLoadingAttendees] = useState(false);
@@ -40,6 +41,7 @@ export default function EventDetailScreen() {
                 const data = await api(`/api/posts/${event.post_id}`);
                 if (data.success && data.post) {
                     setAuthorName(data.post.author_name);
+                    setAuthorUsername(data.post.username);
                 }
             } catch (err) {
                 console.error(err);
@@ -187,7 +189,7 @@ export default function EventDetailScreen() {
                 <Text style={styles.title}>{event.title}</Text>
                 {authorName && (
                     <Pressable onPress={() => router.push(`/users/${event.organizer_id}`)}>
-                        <Text style={styles.host}>Hosted by {authorName} (@userID{event.organizer_id})</Text>
+                        <Text style={styles.host}>Hosted by {authorName} (@{authorUsername})</Text>
                     </Pressable>
                 )}
 
@@ -199,7 +201,7 @@ export default function EventDetailScreen() {
                 </Text>
 
                 {/* ATTENDING */}
-                <Text style={[styles.attending, isAtCapacity && styles.atCapacity]}>
+                <Text style={[styles.attending, !!isAtCapacity && styles.atCapacity]}>
                     👥 {currentAttendeeCount} / {event.max_attendees ?? '∞'}
                     {isAtCapacity && " (FULL)"}
                 </Text>
@@ -215,9 +217,9 @@ export default function EventDetailScreen() {
                         </Pressable>
                     ) : (
                         <Pressable
-                            style={[styles.rsvpBtn, isAtCapacity && styles.disabledBtn]}
+                            style={[styles.rsvpBtn, !!isAtCapacity && styles.disabledBtn]}
                             onPress={handleSignUp}
-                            disabled={isAtCapacity}
+                            disabled={!!isAtCapacity}
                         >
                             <Text style={styles.rsvpText}>
                                 {isAtCapacity ? "Event Full" : "Sign Up"}

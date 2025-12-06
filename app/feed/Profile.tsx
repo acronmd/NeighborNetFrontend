@@ -119,7 +119,7 @@ export default function Profile() {
                     setEmail(data.user.email ?? '');
                     setPhone(data.user.phone ?? '');
                     
-                    const rawImage = data.user.profile_image ?? null;
+                    const rawImage = data.user.profile_image_url ?? null;
                     setProfileImage(rawImage);
                     
                     // Fix localhost URLs
@@ -182,9 +182,10 @@ export default function Profile() {
             });
 
             const data = await res.json();
+
             if (data.success) {
-                setFollowersCount(data.followers_count);
-                setFollowingCount(data.following_count);
+                setFollowersCount(data.followers);
+                setFollowingCount(data.following);
             }
         } catch (err) {
             console.error('Failed to fetch follow counts:', err);

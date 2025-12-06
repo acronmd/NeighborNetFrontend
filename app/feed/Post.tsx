@@ -11,7 +11,7 @@ export default function Post({ post }: { post: ApiPost }) {
     const { deletePost, updatePost, refreshPosts } = usePosts();
 
     const [likes, setLikes] = useState(post.likes_count);
-    const [commentsCount, setCommentsCount] = useState(post.comments_count);
+    const commentsCount = post.comments_count;
     const [replyText, setReplyText] = useState("");
     const [isOwner, setIsOwner] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -133,31 +133,31 @@ export default function Post({ post }: { post: ApiPost }) {
     };
 
     // --- COMMENT ---
-    const handleComment = async () => {
-        if (!replyText.trim()) return;
-
-        const token = await SecureStore.getItemAsync("authToken");
-        const ip = await SecureStore.getItemAsync("serverIp");
-
-        const res = await fetch(`http://${ip}/api/posts/${post.post_id}/comments`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ content: replyText }),
-        });
-
-        if (res.ok) {
-            setReplyText("");
-            setCommentsCount((prev) => prev + 1);
-
-            // Refresh the feed to update comment counts
-            await refreshPosts();
-        } else {
-            Alert.alert("Failed to comment");
-        }
-    };
+    // const handleComment = async () => {
+    //     if (!replyText.trim()) return;
+    //
+    //     const token = await SecureStore.getItemAsync("authToken");
+    //     const ip = await SecureStore.getItemAsync("serverIp");
+    //
+    //     const res = await fetch(`http://${ip}/api/posts/${post.post_id}/comments`, {
+    //         method: "POST",
+    //         headers: {
+    //             "Content-Type": "application/json",
+    //             Authorization: `Bearer ${token}`,
+    //         },
+    //         body: JSON.stringify({ content: replyText }),
+    //     });
+    //
+    //     if (res.ok) {
+    //         setReplyText("");
+    //         setCommentsCount((prev) => prev + 1);
+    //
+    //         // Refresh the feed to update comment counts
+    //         await refreshPosts();
+    //     } else {
+    //         Alert.alert("Failed to comment");
+    //     }
+    // };
 
     // --- DELETE POST ---
     const handleDelete = async () => {

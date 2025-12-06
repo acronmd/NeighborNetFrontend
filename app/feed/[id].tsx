@@ -14,6 +14,7 @@ import React, { useState, useEffect } from "react";
 import { useApiPost } from "../hooks/_useApiPost";
 import { useComments } from "../hooks/_useComments";
 import * as SecureStore from "expo-secure-store";
+import { Colors, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 
 export default function PostDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -149,82 +150,84 @@ export default function PostDetailScreen() {
     };
 
     return (
-        <View style={styles.postCard}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Pressable onPress={() => router.push(`/users/${post.user_id}`)}>
-                    <Image
-                        source={
-                            post.author_image
-                                ? { uri: post.author_image }
-                                : require('@/assets/images/default-avatar.png')
-                        }
-                        style={styles.avatar}
-                    />
-                </Pressable>
+        <View style={styles.container}>
+            <View style={styles.postCard}>
 
-                <View style={styles.authorInfo}>
-                    <Text style={styles.displayName}>{post.author_name}</Text>
-                    <Text style={styles.username}>@userID{post.username}</Text>
+                {/* ---------- HEADER ---------- */}
+                <View style={styles.header}>
+                    <Pressable onPress={() => router.push(`/profile/${post.user_id}`)}>
+                        <View style={styles.avatarContainer}>
+                            <Image
+                                source={
+                                    post.author_image
+                                        ? { uri: post.author_image }
+                                        : require('@/assets/images/default-avatar.png')
+                                }
+                                style={styles.avatar}
+                            />
+                            <View style={styles.avatarRing} />
+                        </View>
+                    </Pressable>
+
+                    <View style={styles.authorInfo}>
+                        <Text style={styles.displayName}>{post.author_name}</Text>
+                        <Text style={styles.username}>@{post.username}</Text>
+                    </View>
                 </View>
 
-                <Text style={styles.rightItem}>{post.location_lat} away</Text>
-            </View>
+                {/* ---------- CONTENT ---------- */}
+                <Text style={styles.content}>{post.content}</Text>
 
-            {/* Content */}
-            <Text style={styles.content}>{post.content}</Text>
+                {/*{!!post.post_image && (*/}
+                {/*    <View style={styles.imageContainer}>*/}
+                {/*        <Image*/}
+                {/*            source={{ uri: post.post_image }}*/}
+                {/*            style={styles.postImage}*/}
+                {/*            resizeMode="contain"*/}
+                {/*        />*/}
+                {/*    </View>*/}
+                {/*)}*/}
 
-            {/* Post actions */}
-            <View style={styles.actions}>
-                <Pressable style={styles.actionButton} onPress={() => {}}>
-                    <Text style={styles.actionText}>
-                        💬 {post.comments_count} Comment{post.comments_count === 1 ? "" : "s"}
-                    </Text>
-                </Pressable>
+                {/* ---------- DIVIDER ---------- */}
+                <View style={styles.separator} />
 
-                <Pressable style={styles.actionButton} onPress={handleLike}>
-                    <Text style={styles.actionText}>
-                        ❤ {likes} Like{likes === 1 ? "" : "s"}
-                    </Text>
-                </Pressable>
-            </View>
+                {/* ---------- ACTIONS ---------- */}
+                <View style={styles.actions}>
+                    <Pressable style={styles.actionButton}>
+                        <Text style={styles.actionIcon}>💬</Text>
+                        <Text style={styles.actionText}>{comments.length}</Text>
+                    </Pressable>
 
-            {/* Reply Input */}
-            <View style={{ flexDirection: "row", marginTop: 8 }}>
-                <TextInput
-                    value={replyText}
-                    onChangeText={setReplyText}
-                    placeholder="Write a reply..."
-                    style={{
-                        flex: 1,
-                        borderWidth: 1,
-                        borderColor: "#ccc",
-                        borderRadius: 8,
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                    }}
-                />
-                <Pressable
-                    style={{ marginLeft: 8, justifyContent: "center", paddingHorizontal: 8 }}
-                    onPress={handleSend}
-                >
-                    <Text style={{ color: "#1DA1F2", fontWeight: "600" }}>Send</Text>
-                </Pressable>
-            </View>
+                    <Pressable style={styles.actionButton} onPress={handleLike}>
+                        <Text style={styles.actionIcon}>❤️</Text>
+                        <Text style={styles.actionText}>{likes}</Text>
+                    </Pressable>
+                </View>
 
-            {/* Separator */}
-            <View style={styles.separator} />
+                {/* ---------- REPLY INPUT ---------- */}
+                <View style={styles.replyRow}>
+                    <TextInput
+                        value={replyText}
+                        onChangeText={setReplyText}
+                        placeholder="Write a reply..."
+                        style={styles.replyInput}
+                    />
+                    <Pressable style={styles.sendButton} onPress={handleSend}>
+                        <Text style={styles.sendText}>Send</Text>
+                    </Pressable>
+                </View>
 
-            {/* Comments */}
-            <View style={styles.commentsContainer}>
-                <Text style={styles.commentsTitle}>Comments</Text>
+                {/* ---------- COMMENTS ---------- */}
+                <View style={styles.commentsContainer}>
+                    <Text style={styles.commentsTitle}>Comments</Text>
 
-                {commentsLoading ? (
-                    <ActivityIndicator />
-                ) : comments.length > 0 ? (
-                    comments.map((comment) => (
-                        <View key={comment.comment_id} style={styles.comment}>
-                            <Pressable onPress={() => router.push(`/profile/${comment.user_id}`)}>
+                    {commentsLoading ? (
+                        <ActivityIndicator />
+                    ) : comments.length === 0 ? (
+                        <Text style={styles.noComments}>No comments yet.</Text>
+                    ) : (
+                        comments.map((comment) => (
+                            <View key={comment.comment_id} style={styles.comment}>
                                 <Image
                                     source={
                                         comment.author_image
@@ -233,194 +236,371 @@ export default function PostDetailScreen() {
                                     }
                                     style={styles.commentAvatar}
                                 />
-                            </Pressable>
 
-                            <View style={styles.commentBody}>
-                                <Text style={styles.commentAuthor}>{comment.author_name}</Text>
-                                <Text>{comment.content}</Text>
-                                
-                                {/* Edit/Delete buttons for comment owner */}
-                                {loggedInUserId === comment.user_id && (
-                                    <View style={styles.commentActions}>
-                                        <Pressable
-                                            style={styles.commentEditButton}
-                                            onPress={() => handleEditComment(comment.comment_id, comment.content)}
-                                        >
-                                            <Text style={styles.commentEditText}>✏️ Edit</Text>
-                                        </Pressable>
-                                        <Pressable
-                                            style={styles.commentDeleteButton}
-                                            onPress={() => handleDeleteComment(comment.comment_id)}
-                                        >
-                                            <Text style={styles.commentDeleteText}>🗑️ Delete</Text>
-                                        </Pressable>
-                                    </View>
-                                )}
+                                <View style={styles.commentBody}>
+                                    <Text style={styles.commentAuthor}>
+                                        {comment.author_name}
+                                    </Text>
+                                    <Text>{comment.content}</Text>
+
+                                    {loggedInUserId === comment.user_id && (
+                                        <View style={styles.commentActions}>
+                                            <Pressable
+                                                style={styles.commentEditButton}
+                                                onPress={() =>
+                                                    handleEditComment(
+                                                        comment.comment_id,
+                                                        comment.content
+                                                    )
+                                                }>
+                                                <Text style={styles.commentEditText}>
+                                                    ✏️ Edit
+                                                </Text>
+                                            </Pressable>
+
+                                            <Pressable
+                                                style={styles.commentDeleteButton}
+                                                onPress={() =>
+                                                    handleDeleteComment(comment.comment_id)
+                                                }>
+                                                <Text style={styles.commentDeleteText}>
+                                                    🗑️ Delete
+                                                </Text>
+                                            </Pressable>
+                                        </View>
+                                    )}
+                                </View>
                             </View>
-                        </View>
-                    ))
-                ) : (
-                    <Text style={styles.noComments}>No comments yet.</Text>
-                )}
+                        ))
+                    )}
+                </View>
+
             </View>
 
-            {/* Edit Comment Modal */}
-            <Modal visible={editingCommentId !== null} animationType="slide" transparent={true}>
+            {/* ---------- EDIT COMMENT MODAL ---------- */}
+            <Modal visible={editingCommentId !== null} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Edit Comment</Text>
+
                         <TextInput
-                            style={styles.editInput}
                             value={editCommentText}
                             onChangeText={setEditCommentText}
+                            style={styles.editInput}
                             multiline
-                            placeholder="Edit your comment..."
                         />
+
                         <View style={styles.modalButtons}>
                             <Pressable
-                                style={[styles.modalButton, styles.cancelButton]}
-                                onPress={() => {
-                                    setEditingCommentId(null);
-                                    setEditCommentText("");
-                                }}
-                            >
+                                style={styles.cancelButton}
+                                onPress={() => setEditingCommentId(null)}>
                                 <Text style={styles.cancelButtonText}>Cancel</Text>
                             </Pressable>
+
                             <Pressable
-                                style={[styles.modalButton, styles.saveButton]}
-                                onPress={handleSaveEditComment}
-                            >
+                                style={styles.saveButton}
+                                onPress={handleSaveEditComment}>
                                 <Text style={styles.saveButtonText}>Save</Text>
                             </Pressable>
                         </View>
                     </View>
                 </View>
             </Modal>
+
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16, backgroundColor: "#f5f8fa" },
-    postCard: {
-        padding: 16,
-        borderRadius: 12,
-        backgroundColor: "#fff",
-        marginVertical: 8,
-        marginHorizontal: 12,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+    container: {
+        flex: 1,
+        backgroundColor: Colors.light.background,
+        paddingVertical: Spacing.md,
     },
-    header: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-    avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12, backgroundColor: "#ccc" },
-    authorInfo: { flexDirection: "column", justifyContent: "center" },
-    displayName: { fontWeight: "bold", fontSize: 16 },
-    username: { color: "#657786", fontSize: 14 },
-    rightItem: { marginLeft: "auto", color: "#657786", fontSize: 12 },
-    content: { fontSize: 15, lineHeight: 22, marginBottom: 12 },
-    separator: { height: 1, backgroundColor: "#e1e8ed", marginVertical: 12 },
-    actions: { flexDirection: "row", marginBottom: 12 },
-    actionButton: {
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 8,
-        backgroundColor: "#f1f1f1",
-        marginRight: 12,
-    },
-    actionText: { color: "#1DA1F2", fontWeight: "600" },
 
-    commentsContainer: { marginTop: 12 },
-    commentsTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 8 },
+    postCard: {
+        backgroundColor: Colors.light.backgroundCard,
+        marginHorizontal: Spacing.lg,
+        marginVertical: Spacing.sm,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        ...Shadows.md,
+    },
+
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: Spacing.md,
+    },
+
+    avatarContainer: {
+        position: 'relative',
+    },
+    avatar: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        marginRight: Spacing.md,
+        backgroundColor: Colors.light.borderLight,
+    },
+
+    authorInfo: {
+        flex: 1,
+    },
+
+    displayName: {
+        fontWeight: "700",
+        fontSize: 16,
+        color: Colors.light.text,
+        marginBottom: 2,
+    },
+
+    username: {
+        color: Colors.light.textSecondary,
+        fontSize: 14,
+    },
+
+    rightItem: {
+        color: Colors.light.textSecondary,
+        fontSize: 12,
+    },
+
+    content: {
+        fontSize: 15,
+        lineHeight: 22,
+        color: Colors.light.text,
+        marginBottom: Spacing.md,
+    },
+
+    separator: {
+        height: 1,
+        backgroundColor: Colors.light.border,
+        marginVertical: Spacing.md,
+    },
+
+    actions: {
+        flexDirection: "row",
+        gap: Spacing.md,
+        marginBottom: Spacing.md,
+    },
+
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        backgroundColor: Colors.light.borderLight,
+        borderRadius: BorderRadius.full,
+        gap: Spacing.xs,
+    },
+
+    actionText: {
+        color: Colors.light.textSecondary,
+        fontWeight: "600",
+        fontSize: 14,
+    },
+
+    /* ========================= */
+    /* COMMENTS */
+    /* ========================= */
+
+    commentsContainer: {
+        marginTop: Spacing.md,
+    },
+
+    commentsTitle: {
+        fontWeight: "700",
+        fontSize: 16,
+        color: Colors.light.text,
+        marginBottom: Spacing.sm,
+    },
+
     comment: {
         flexDirection: "row",
-        marginBottom: 12,
-        padding: 8,
-        backgroundColor: "#f9f9f9",
-        borderRadius: 8,
+        marginBottom: Spacing.sm,
+        padding: Spacing.md,
+        backgroundColor: Colors.light.borderLight,
+        borderRadius: BorderRadius.md,
     },
-    commentAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 8 },
-    commentBody: { flex: 1 },
-    commentAuthor: { fontWeight: "bold", fontSize: 14, marginBottom: 2 },
-    noComments: { fontStyle: "italic", color: "#657786", marginVertical: 8 },
+
+    commentAvatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        marginRight: Spacing.sm,
+        backgroundColor: Colors.light.border,
+    },
+
+    commentBody: {
+        flex: 1,
+    },
+
+    commentAuthor: {
+        fontWeight: "600",
+        fontSize: 14,
+        marginBottom: 2,
+        color: Colors.light.text,
+    },
+
+    noComments: {
+        fontStyle: "italic",
+        color: Colors.light.textSecondary,
+        marginVertical: Spacing.sm,
+    },
+
     commentActions: {
         flexDirection: "row",
-        marginTop: 8,
-        gap: 8,
+        marginTop: Spacing.sm,
+        gap: Spacing.sm,
     },
+
     commentEditButton: {
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        backgroundColor: "#4A90E2",
-        borderRadius: 4,
+        paddingVertical: Spacing.xs,
+        paddingHorizontal: Spacing.md,
+        backgroundColor: Colors.light.primary,
+        borderRadius: BorderRadius.md,
     },
+
     commentEditText: {
-        color: "white",
+        color: Colors.light.backgroundCard,
         fontSize: 12,
         fontWeight: "600",
     },
+
     commentDeleteButton: {
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        backgroundColor: "#E74C3C",
-        borderRadius: 4,
+        paddingVertical: Spacing.xs,
+        paddingHorizontal: Spacing.md,
+        backgroundColor: Colors.light.error,
+        borderRadius: BorderRadius.md,
     },
+
     commentDeleteText: {
-        color: "white",
+        color: Colors.light.backgroundCard,
         fontSize: 12,
         fontWeight: "600",
     },
+
+    /* ========================= */
+    /* MODAL
+    /* ========================= */
+
     modalOverlay: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.5)",
+        backgroundColor: "rgba(0,0,0,0.6)",
         justifyContent: "center",
         alignItems: "center",
     },
+
     modalContent: {
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 20,
+        backgroundColor: Colors.light.backgroundCard,
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.xxl,
         width: "90%",
         maxWidth: 400,
+        ...Shadows.lg,
     },
+
     modalTitle: {
-        fontSize: 20,
-        fontWeight: "bold",
-        marginBottom: 16,
+        fontSize: 22,
+        fontWeight: "700",
+        color: Colors.light.text,
+        marginBottom: Spacing.lg,
     },
+
     editInput: {
         borderWidth: 1,
-        borderColor: "#ddd",
-        borderRadius: 8,
-        padding: 12,
-        minHeight: 80,
+        borderColor: Colors.light.border,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.md,
+        minHeight: 120,
         textAlignVertical: "top",
-        marginBottom: 16,
+        marginBottom: Spacing.lg,
+        fontSize: 15,
+        color: Colors.light.text,
+        backgroundColor: Colors.light.background,
     },
+
     modalButtons: {
         flexDirection: "row",
         justifyContent: "flex-end",
-        gap: 12,
+        gap: Spacing.md,
     },
+
     modalButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 8,
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.xl,
+        borderRadius: BorderRadius.md,
+        minWidth: 90,
+        alignItems: 'center',
     },
+
     cancelButton: {
-        backgroundColor: "#95a5a6",
+        backgroundColor: Colors.light.textMuted,
     },
+
     cancelButtonText: {
-        color: "white",
+        color: Colors.light.backgroundCard,
         fontWeight: "600",
+        fontSize: 15,
     },
+
     saveButton: {
-        backgroundColor: "#4A90E2",
+        backgroundColor: Colors.light.primary,
     },
+
     saveButtonText: {
-        color: "white",
+        color: Colors.light.backgroundCard,
         fontWeight: "600",
+        fontSize: 15,
+    },
+
+    avatarRing: {
+        position: 'absolute',
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        borderWidth: 2,
+        borderColor: Colors.light.primary,
+        top: -2,
+        left: -2,
+        opacity: 0.3,
+    },
+
+    replyRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: Spacing.md,
+        gap: Spacing.sm,
+    },
+
+    replyInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: Colors.light.border,
+        borderRadius: BorderRadius.full,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        fontSize: 14,
+        backgroundColor: Colors.light.backgroundCard,
+        color: Colors.light.text,
+    },
+
+    sendButton: {
+        backgroundColor: Colors.light.primary,
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.full,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
+    sendText: {
+        color: Colors.light.backgroundCard,
+        fontWeight: "600",
+        fontSize: 14,
+    },
+
+    actionIcon: {
+        fontSize: 18,
     },
 });

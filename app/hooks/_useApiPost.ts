@@ -38,7 +38,7 @@ export function useApiPost(postId: number) {
                     created_at: json.post.created_at,
                     author_image: json.post.author_image,
                     author_name: json.post.author_name,
-                    username: json.username,
+                    username: json.post.username,
                     display_name: json.post.display_name,
                 };
 
