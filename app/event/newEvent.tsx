@@ -3,6 +3,8 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Button, Platform, ScrollView, Text, TextInput } from 'react-native';
+import { useLocalSearchParams } from "expo-router";
+
 
 export default function NewEventPage() {
     const router = useRouter();
@@ -10,10 +12,28 @@ export default function NewEventPage() {
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [location, setLocation] = useState('');
     const [eventDate, setEventDate] = useState(new Date());
     const [maxAttendees, setMaxAttendees] = useState('');
     const [showIOSPicker, setShowIOSPicker] = useState(false);
+
+    const { lat, lng, address, poi } = useLocalSearchParams();
+
+    const parseParam = (param: string | string[] | undefined) => {
+        if (!param) return null;
+        return Array.isArray(param) ? param[0] : param;
+    };
+
+    const [locationLat, setLocationLat] = useState<number | null>(
+        parseParam(lat) ? parseFloat(parseParam(lat)!) : null
+    );
+
+    const [locationLng, setLocationLng] = useState<number | null>(
+        parseParam(lng) ? parseFloat(parseParam(lng)!) : null
+    );
+
+    const [location, setLocation] = useState<string>(parseParam(address) || '');
+
+    const [locationPoi, setLocationPoi] = useState<string>(parseParam(poi) || '');
 
     // Format date to MySQL DATETIME format: YYYY-MM-DD HH:MM:SS
     const formatDateForMySQL = (date: Date) => {
@@ -48,6 +68,9 @@ export default function NewEventPage() {
                 location,
                 event_date: formatDateForMySQL(eventDate), // correctly formatted
                 max_attendees: maxAttendees ? parseInt(maxAttendees, 10) : undefined,
+                location_lat: locationLat,
+                location_lng: locationLng,
+                poi: locationPoi
             });
             Alert.alert('Success', 'Event created successfully!');
             router.push('/event-feed');
@@ -77,12 +100,16 @@ export default function NewEventPage() {
             />
 
             <Text>Location</Text>
-            <TextInput
-                value={location}
-                onChangeText={setLocation}
-                placeholder="Location"
-                style={{ borderWidth: 1, borderColor: '#ccc', padding: 8, marginBottom: 12 }}
+
+            <Button
+                title={
+                    locationLat
+                        ? `Selected: ${locationLat.toFixed(4)}, ${locationLng?.toFixed(4)}`
+                        : "Pick Location on Map"
+                }
+                onPress={() => router.push("/event/pick-location")}
             />
+
 
             <Text>Date & Time *</Text>
             <Button title={eventDate.toLocaleString()} onPress={showDateTimePicker} />

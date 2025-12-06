@@ -11,6 +11,7 @@ export type EventType = {
     location: string | null;
     location_lat?: number | null;
     location_lng?: number | null;
+    poi: string | null;
     max_attendees?: number | null;
     current_attendees?: number;
     organizer_id: number;
@@ -27,8 +28,9 @@ type EventContextType = {
         description?: string;
         event_date: string;
         location?: string;
-        location_lat?: number;
-        location_lng?: number;
+        location_lat?: number | null;
+        location_lng?: number | null;
+        poi: string;
         max_attendees?: number;
     }) => Promise<void>;
 };
