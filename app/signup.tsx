@@ -122,13 +122,13 @@ export default function SignupScreen() {
 
                 {error ? <Text style={styles.error}>{error}</Text> : null}
 
-                <TextInput
-                    style={styles.input}
-                    placeholder="Backend IP (e.g., 192.168.1.25:5050)"
-                    placeholderTextColor="#888"
-                    value={ip}
-                    onChangeText={setIp}
-                />
+                {/*<TextInput*/}
+                {/*    style={styles.input}*/}
+                {/*    placeholder="Backend IP (e.g., 192.168.1.25:5050)"*/}
+                {/*    placeholderTextColor="#888"*/}
+                {/*    value={ip}*/}
+                {/*    onChangeText={setIp}*/}
+                {/*/>*/}
 
                 <TextInput
                     style={styles.input}
