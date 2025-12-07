@@ -73,7 +73,7 @@ export default function NewEventPage() {
                 poi: locationPoi
             });
             Alert.alert('Success', 'Event created successfully!');
-            router.push('/event-feed');
+            router.push('/feed');
         } catch (err) {
             console.error(err);
             Alert.alert('Error', 'Failed to create event');

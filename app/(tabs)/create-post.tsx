@@ -4,6 +4,7 @@ import { useState } from 'react';
 import React from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
+import {router} from "expo-router";
 
 // Preset tags users can quickly select
 const PRESET_TAGS = [
@@ -131,6 +132,7 @@ export default function CreatePostScreen() {
                 setSelectedImage(null);
                 await refreshPosts();
                 Alert.alert("Success", "Post created!");
+                router.push('/feed');
             } else {
                 Alert.alert("Error", data.message || "Failed to create post");
             }

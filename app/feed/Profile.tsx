@@ -355,6 +355,21 @@ export default function Profile() {
         }
     }
 
+    async function getEventFromPost(post_id: number ){
+        const token = await SecureStore.getItemAsync('authToken');
+        const ip = await SecureStore.getItemAsync('serverIp');
+
+        const res = await fetch(`http://${ip}/api/events/by-post/${post_id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            console.log("return data: " + data.event.event_id);
+            return data.event.event_id;
+        }
+    }
+
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         
@@ -473,6 +488,8 @@ export default function Profile() {
                 return '#95A5A6';
         }
     };
+
+
 
     return (
         <ScrollView style={styles.container}>
@@ -735,10 +752,27 @@ export default function Profile() {
                 <Text style={styles.sectionTitle}>Posts</Text>
                 {userPosts.length > 0 ? (
                     userPosts.map(p => (
-                        <TouchableOpacity key={p.post_id} onPress={() => router.push(`/feed/${p.post_id}`)}>
-                            <Text style={styles.postTitle}>
-                                {p.content.length > 80 ? p.content.slice(0, 80) + '…' : p.content}
-                            </Text>
+                        <TouchableOpacity
+                            key={p.post_id}
+                            onPress={async () => {
+                                if (p.post_type === "event") {
+                                    const eventId = await getEventFromPost(p.post_id); // ✅ MUST await
+
+                                    console.log("got data:", eventId); // ✅ will log 6 (number)
+
+                                    if (eventId != null) {
+                                        router.push(`/event/${eventId}`); // ✅ USE event_id, NOT post_id
+                                    } else {
+                                        Alert.alert("Error", "Event not found");
+                                    }
+                                } else {
+                                    router.push(`/feed/${p.post_id}`);
+                                }
+                            }}
+                        >
+                        <Text style={styles.postTitle}>
+                                    {p.content.length > 80 ? p.content.slice(0, 80) + '…' : p.content}
+                                </Text>
                         </TouchableOpacity>
                     ))
                 ) : (

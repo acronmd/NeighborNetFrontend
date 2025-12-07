@@ -1,25 +1,36 @@
-import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import React, {useCallback, useEffect, useState} from "react";
+import {View, Text, ActivityIndicator, StyleSheet, Alert, TouchableOpacity} from "react-native";
 import MapView, { Marker, Circle } from "react-native-maps";
 import * as Location from "expo-location";
 import { api } from "@/app/lib/_api";
+import {useFocusEffect, useRouter} from "expo-router";
 
 export interface Event {
     event_id: number;
+    post_id?: number;
     title: string;
     description?: string;
-    location_lat: number;
-    location_lng: number;
-    going_count: number;
-    interested_count: number;
+    event_date?: string;
+    location?: string;
+    location_lat: number | string;
+    location_lng: number | string;
+    max_attendees?: number;
+    current_attendees?: number;
+    organizer_name?: string;
+    going_count?: number;
+    interested_count?: number;
 }
 
 export default function MapScreen() {
     const [events, setEvents] = useState<Event[]>([]);
+    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const radiusKm = 10;
 
+    const router = useRouter();
+
+    // Request location permission
     useEffect(() => {
         (async () => {
             const { status } = await Location.requestForegroundPermissionsAsync();
@@ -37,6 +48,7 @@ export default function MapScreen() {
         })();
     }, []);
 
+    // Fetch events near user
     useEffect(() => {
         if (!userLocation) return;
 
@@ -44,12 +56,11 @@ export default function MapScreen() {
             try {
                 setLoading(true);
 
-                // Build query params safely
                 const params = new URLSearchParams({
                     latitude: userLocation.latitude.toString(),
                     longitude: userLocation.longitude.toString(),
                     radius: radiusKm.toString(),
-                    status: "upcoming", // optional, default on backend
+                    status: "upcoming",
                     limit: "100",
                 });
 
@@ -66,10 +77,40 @@ export default function MapScreen() {
         fetchEvents();
     }, [userLocation]);
 
+    const fetchNearbyEvents = async () => {
+        if (!userLocation) return;
+        try {
+            setLoading(true);
+            const params = new URLSearchParams({
+                latitude: userLocation.latitude.toString(),
+                longitude: userLocation.longitude.toString(),
+                radius: radiusKm.toString(),
+                status: "upcoming",
+                limit: "100",
+            });
+
+            const json = await api(`/api/events/nearby?${params.toString()}`);
+            setEvents(json.events || []);
+        } catch (err) {
+            console.error("Error fetching events:", err);
+            Alert.alert("Error fetching events");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchNearbyEvents();
+            setSelectedEvent(null); // reset overlay
+        }, [userLocation])
+    );
+
+
     if (loading || !userLocation) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
 
     return (
-        <View style={styles.container}>
+        <View style={{ flex: 1 }}>
             <MapView
                 style={styles.map}
                 initialRegion={{
@@ -78,6 +119,7 @@ export default function MapScreen() {
                     latitudeDelta: radiusKm / 111,
                     longitudeDelta: radiusKm / 111,
                 }}
+                onPress={() => setSelectedEvent(null)} // <-- deselect when tapping empty space
             >
                 <Circle
                     center={userLocation}
@@ -91,13 +133,40 @@ export default function MapScreen() {
                         key={event.event_id}
                         coordinate={{
                             latitude: Number(event.location_lat),
-                            longitude: Number(event.location_lng)
+                            longitude: Number(event.location_lng),
                         }}
                         title={event.title}
                         description={event.description}
+                        onPress={() => setSelectedEvent(event)}
                     />
                 ))}
             </MapView>
+
+            {/* Bottom overlay outside MapView */}
+            {selectedEvent && (
+                <View style={{ position: 'absolute', bottom: 20, left: 10, right: 10 }}>
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => {
+                            router.push(`/event/${selectedEvent.event_id}`);
+                        }}
+                        style={styles.eventOverlay}
+                    >
+                        <Text style={styles.title}>{selectedEvent.title}</Text>
+                        {selectedEvent.description && <Text style={styles.text}>{selectedEvent.description}</Text>}
+                        {selectedEvent.location && <Text style={styles.text}>📍 {selectedEvent.location}</Text>}
+                        {selectedEvent.event_date && (
+                            <Text style={styles.text}>🗓 {new Date(selectedEvent.event_date).toLocaleString()}</Text>
+                        )}
+                        {selectedEvent.going_count !== undefined && (
+                            <Text style={styles.text}>👥 Going: {selectedEvent.current_attendees} / {selectedEvent.max_attendees}</Text>
+                        )}
+                        {selectedEvent.organizer_name && (
+                            <Text style={styles.text}>👤 Organizer: {selectedEvent.organizer_name}</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            )}
         </View>
     );
 }
@@ -105,4 +174,23 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     map: { flex: 1 },
+    eventOverlay: {
+        position: 'absolute',
+        bottom: 20,
+        left: 10,
+        right: 10,
+        backgroundColor: 'white',
+        padding: 12,
+        borderRadius: 8,
+        elevation: 5,
+    },
+    title: {
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginBottom: 4,
+    },
+    text: {
+        marginBottom: 2,
+        fontSize: 14,
+    },
 });
