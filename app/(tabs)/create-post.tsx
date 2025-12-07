@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import {router} from "expo-router";
 import {BASE_URL} from "@/app/lib/config";
+import * as Location from 'expo-location';
 
 // Preset tags users can quickly select
 const PRESET_TAGS = [
@@ -81,6 +82,21 @@ export default function CreatePostScreen() {
         setSelectedTags(selectedTags.filter(t => t !== tag));
     };
 
+    const getUserLocation = async () => {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'We need location access to attach your location to the post.');
+            return null;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        return {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+        };
+    };
+
+
     const handlePost = async () => {
         if (!content.trim()) {
             Alert.alert("Cannot post empty content!");
@@ -91,19 +107,24 @@ export default function CreatePostScreen() {
 
         try {
             const token = await SecureStore.getItemAsync("authToken");
-            const ip = await SecureStore.getItemAsync("serverIp");
+
+            // Get user's location
+            const userLocation = await getUserLocation();
+
+            if (!userLocation) {
+                setUploading(false);
+                return;
+            }
 
             // Create FormData for multipart upload
             const formData = new FormData();
             formData.append('content', content);
             formData.append('post_type', 'general');
-            
-            // Add tags as JSON string
+
             if (selectedTags.length > 0) {
                 formData.append('tags', JSON.stringify(selectedTags));
             }
 
-            // Add image if selected
             if (selectedImage) {
                 const filename = selectedImage.split('/').pop() || 'post_image.jpg';
                 const match = /\.(\w+)$/.exec(filename);
@@ -116,11 +137,13 @@ export default function CreatePostScreen() {
                 } as any);
             }
 
+            // Append location
+            formData.append('location_lat', userLocation.latitude.toString());
+            formData.append('location_lng', userLocation.longitude.toString());
+
             const res = await fetch(`https://${BASE_URL}/api/posts`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
                 body: formData,
             });
 

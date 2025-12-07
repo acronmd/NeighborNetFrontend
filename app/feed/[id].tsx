@@ -55,6 +55,29 @@ export default function PostDetailScreen() {
         loadLoggedInUser();
     }, []);
 
+    const [localCreatedAt, setLocalCreatedAt] = useState("");
+
+    useEffect(() => {
+        if (post && post.created_at) {
+            const utcDate = new Date(post.created_at); // already ISO UTC string
+            if (!isNaN(utcDate.getTime())) {
+                // Format as local time
+                const options: Intl.DateTimeFormatOptions = {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                };
+                const formatted = utcDate.toLocaleString("en-US", options);
+                setLocalCreatedAt(formatted);
+            } else {
+                console.warn("Invalid date:", post.created_at);
+            }
+        }
+    }, [post]);
+
     if (loading || !post) {
         return (
             <View style={styles.container}>
@@ -171,9 +194,11 @@ export default function PostDetailScreen() {
                     </Pressable>
 
                     <View style={styles.authorInfo}>
-                        <Text style={styles.displayName}>{post.author_name}</Text>
+                        <Text style={styles.displayName}>{post.display_name}</Text>
                         <Text style={styles.username}>@{post.username}</Text>
                     </View>
+
+                    <Text style={{ color: "#999", fontSize: 12 }}>{localCreatedAt}</Text>
                 </View>
 
                 {/* ---------- CONTENT ---------- */}

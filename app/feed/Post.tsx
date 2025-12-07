@@ -22,6 +22,27 @@ export default function Post({ post }: { post: ApiPost }) {
     const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
     const [imageLoadError, setImageLoadError] = useState(false);
 
+    function timeAgo(dateString: string) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+        if (seconds < 60) return `${seconds} seconds ago`;
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} minutes ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hours ago`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days} days ago`;
+        const weeks = Math.floor(days / 7);
+        if (weeks < 4) return `${weeks} weeks ago`;
+        const months = Math.floor(days / 30);
+        if (months < 12) return `${months} months ago`;
+        const years = Math.floor(days / 365);
+        return `${years} years ago`;
+    }
+
+
     // Fix image URLs to use actual server IP instead of localhost
     useEffect(() => {
         const fixImageUrls = async () => {
@@ -237,9 +258,11 @@ export default function Post({ post }: { post: ApiPost }) {
                     style={styles.userInfo}
                     onPress={() => router.push(`/profile/${post.user_id}` as any)}
                 >
-                    <Text style={styles.displayName}>{post.author_name}</Text>
+                    <Text style={styles.displayName}>{post.display_name}</Text>
                     <Text style={styles.username}>@{post.username}</Text>
                 </Pressable>
+
+                <Text style={{ color: "#999", fontSize: 12 }}>{timeAgo(post.created_at)}</Text>
 
                 {!isOwner && (
                     <Pressable 

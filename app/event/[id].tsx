@@ -33,6 +33,7 @@ export default function EventDetailScreen() {
 
     const [authorName, setAuthorName] = useState<string | null>(null);
     const [authorUsername, setAuthorUsername] = useState<string | null>(null);
+    const [authorDisplayName, setAuthorDisplayName] = useState<string | null>(null);
     const [attendees, setAttendees] = useState<Attendee[]>([]);
     const [isSignedUp, setIsSignedUp] = useState(false);
     const [loadingAttendees, setLoadingAttendees] = useState(false);
@@ -54,6 +55,7 @@ export default function EventDetailScreen() {
                 if (data.success && data.post) {
                     setAuthorName(data.post.author_name);
                     setAuthorUsername(data.post.username);
+                    setAuthorDisplayName(data.post.display_name);
                 }
             } catch (err) {
                 console.error(err);
@@ -234,7 +236,7 @@ export default function EventDetailScreen() {
                 <Text style={styles.title}>{event.title}</Text>
                 {authorName && (
                     <Pressable onPress={() => router.push(`/users/${event.organizer_id}`)}>
-                        <Text style={styles.host}>Hosted by {authorName} (@{authorUsername})</Text>
+                        <Text style={styles.host}>Hosted by {authorName} ({authorDisplayName})</Text>
                     </Pressable>
                 )}
 

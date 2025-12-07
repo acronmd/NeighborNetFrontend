@@ -16,7 +16,17 @@ export default function NewEventPage() {
     const [maxAttendees, setMaxAttendees] = useState('');
     const [showIOSPicker, setShowIOSPicker] = useState(false);
 
-    const { lat, lng, address, poi } = useLocalSearchParams();
+    const {
+        lat,
+        lng,
+        address,
+        poi,
+        title: paramTitle,
+        description: paramDescription,
+        maxAttendees: paramMaxAttendees,
+        eventDate: paramEventDate,
+    } = useLocalSearchParams();
+
 
     const parseParam = (param: string | string[] | undefined) => {
         if (!param) return null;
@@ -34,6 +44,28 @@ export default function NewEventPage() {
     const [location, setLocation] = useState<string>(parseParam(address) || '');
 
     const [locationPoi, setLocationPoi] = useState<string>(parseParam(poi) || '');
+
+    React.useEffect(() => {
+        if (paramTitle !== undefined) {
+            setTitle(Array.isArray(paramTitle) ? paramTitle[0] : paramTitle);
+        }
+
+        if (paramDescription !== undefined) {
+            setDescription(Array.isArray(paramDescription) ? paramDescription[0] : paramDescription);
+        }
+
+        if (paramMaxAttendees !== undefined) {
+            setMaxAttendees(Array.isArray(paramMaxAttendees) ? paramMaxAttendees[0] : paramMaxAttendees);
+        }
+
+        if (paramEventDate) {
+            const parsed = new Date(Array.isArray(paramEventDate) ? paramEventDate[0] : paramEventDate);
+            if (!isNaN(parsed.getTime())) {
+                setEventDate(parsed);
+            }
+        }
+    }, [paramTitle, paramDescription, paramMaxAttendees, paramEventDate]);
+
 
     // Format date to MySQL DATETIME in UTC
     const formatDateForMySQL = (date: Date) => {
@@ -141,7 +173,17 @@ export default function NewEventPage() {
                         ? `Selected: ${locationLat.toFixed(4)}, ${locationLng?.toFixed(4)}`
                         : "Pick Location on Map"
                 }
-                onPress={() => router.push("/event/pick-location")}
+                onPress={() =>
+                    router.push({
+                        pathname: "/event/pick-location",
+                        params: {
+                            title,
+                            description,
+                            maxAttendees,
+                            eventDate: eventDate.toISOString()
+                        }
+                    })
+                }
             />
 
 

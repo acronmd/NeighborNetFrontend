@@ -47,6 +47,7 @@ export default function EventPost({
 
     const [authorName, setAuthorName] = useState<string | null>(null);
     const [authorUsername, setAuthorUsername] = useState<string | null>(null);
+    const [authorDisplayName, setAuthorDisplayName] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -56,6 +57,7 @@ export default function EventPost({
                 if (data.success && data.post) {
                     setAuthorName(data.post.author_name);
                     setAuthorUsername(data.post.username);
+                    setAuthorDisplayName(data.post.display_name);
                 }
             } catch (err) {
                 console.error(err);
@@ -79,7 +81,7 @@ export default function EventPost({
             {/* Right Side Text */}
             <View style={styles.rightContent}>
                 <Text style={styles.title}>{title}</Text>
-                <Text style={styles.host}>Hosted by {authorName} (@{authorUsername})</Text>
+                <Text style={styles.host}>Hosted by {authorName} ({authorDisplayName})</Text>
 
                 <Text style={styles.location}>{description}</Text>
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, Alert, ActivityIndicator } from "react-native";
 import MapView, { Marker, MapPressEvent } from "react-native-maps";
-import { useRouter } from "expo-router";
+import {useLocalSearchParams, useRouter} from "expo-router";
 import * as Location from "expo-location";
 
 type PickedLocation = {
@@ -16,6 +16,13 @@ export default function PickLocationScreen() {
     const [selected, setSelected] = useState<PickedLocation | null>(null);
     const [loadingAddress, setLoadingAddress] = useState(false);
 
+    const {
+        title,
+        description,
+        maxAttendees,
+        eventDate,
+    } = useLocalSearchParams();
+
     // Request location permission on mount
     useEffect(() => {
         const requestPermission = async () => {
@@ -29,6 +36,33 @@ export default function PickLocationScreen() {
         };
         requestPermission();
     }, []);
+
+    const [userRegion, setUserRegion] = useState<any>(null);
+
+    useEffect(() => {
+        const setupLocation = async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") {
+                Alert.alert(
+                    "Permission required",
+                    "Enable location permissions to pick a location."
+                );
+                return;
+            }
+
+            const pos = await Location.getCurrentPositionAsync({});
+
+            setUserRegion({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+            });
+        };
+
+        setupLocation();
+    }, []);
+
 
     // Fetch POI / building name from OpenStreetMap Nominatim
     const fetchPOI = async (lat: number, lng: number) => {
@@ -79,6 +113,7 @@ export default function PickLocationScreen() {
     };
 
     const handleConfirm = () => {
+
         if (!selected) {
             Alert.alert("Pick a location first", "Tap on the map to choose a spot.");
             return;
@@ -91,19 +126,28 @@ export default function PickLocationScreen() {
                 lng: selected.longitude.toString(),
                 address: selected.address ?? "",
                 poi: selected.poi ?? "",
+
+                title: title?.toString() ?? "",
+                description: description?.toString() ?? "",
+                maxAttendees: maxAttendees?.toString() ?? "",
+                eventDate: eventDate?.toString() ?? "",
             },
         });
     };
 
     return (
         <View style={{ flex: 1 }}>
-            <MapView
-                style={StyleSheet.absoluteFill}
-                showsUserLocation
-                onPress={handleMapPress}
-            >
-                {selected && <Marker coordinate={selected} />}
-            </MapView>
+
+            {userRegion && (
+                <MapView
+                    style={StyleSheet.absoluteFill}
+                    showsUserLocation
+                    initialRegion={userRegion}
+                    onPress={handleMapPress}
+                >
+                    {selected && <Marker coordinate={selected} />}
+                </MapView>
+            )}
 
             <TouchableOpacity
                 onPress={handleConfirm}
