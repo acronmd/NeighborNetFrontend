@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import { useRouter } from "expo-router"; // if using expo-router
+import { useRouter } from "expo-router";
+import {BASE_URL} from "@/app/lib/config"; // if using expo-router
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -23,7 +24,7 @@ export default function LoginScreen() {
         }
 
         try {
-            const res = await fetch(`http://${ip}/api/auth/login`, {
+            const res = await fetch(`https://${BASE_URL}/api/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -62,7 +63,7 @@ export default function LoginScreen() {
 
         setIsResending(true);
         try {
-            const res = await fetch(`http://${ip}/api/auth/resend-verification`, {
+            const res = await fetch(`https://${BASE_URL}/api/auth/resend-verification`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),

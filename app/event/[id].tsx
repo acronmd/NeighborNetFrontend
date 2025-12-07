@@ -15,6 +15,7 @@ import {
     Platform
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import {BASE_URL} from "@/app/lib/config";
 
 type Attendee = {
     user_id: number;
@@ -70,7 +71,7 @@ export default function EventDetailScreen() {
             const token = await SecureStore.getItemAsync("authToken");
             const ip = await SecureStore.getItemAsync("serverIp");
 
-            const res = await fetch(`http://${ip}/api/events/${event.event_id}/attendees`, {
+            const res = await fetch(`https://${BASE_URL}/api/events/${event.event_id}/attendees`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -92,7 +93,7 @@ export default function EventDetailScreen() {
             const token = await SecureStore.getItemAsync("authToken");
             const ip = await SecureStore.getItemAsync("serverIp");
 
-            const res = await fetch(`http://${ip}/api/events/${event.event_id}/signup/status`, {
+            const res = await fetch(`https://${BASE_URL}/api/events/${event.event_id}/signup/status`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -117,7 +118,7 @@ export default function EventDetailScreen() {
             const token = await SecureStore.getItemAsync("authToken");
             const ip = await SecureStore.getItemAsync("serverIp");
 
-            const res = await fetch(`http://${ip}/api/events/${event.event_id}/signup`, {
+            const res = await fetch(`https://${BASE_URL}/api/events/${event.event_id}/signup`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -158,7 +159,7 @@ export default function EventDetailScreen() {
                             const token = await SecureStore.getItemAsync("authToken");
                             const ip = await SecureStore.getItemAsync("serverIp");
 
-                            const res = await fetch(`http://${ip}/api/events/${event.event_id}/signup`, {
+                            const res = await fetch(`https://${BASE_URL}/api/events/${event.event_id}/signup`, {
                                 method: "DELETE",
                                 headers: { Authorization: `Bearer ${token}` }
                             });

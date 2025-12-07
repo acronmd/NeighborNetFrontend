@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import {BASE_URL} from "@/app/lib/config";
 
 export default function ResendVerificationScreen() {
     const router = useRouter();
@@ -29,7 +30,7 @@ export default function ResendVerificationScreen() {
                 return;
             }
 
-            const res = await fetch(`http://${ip}/api/auth/resend-verification`, {
+            const res = await fetch(`https://${BASE_URL}/api/auth/resend-verification`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: email.trim() }),

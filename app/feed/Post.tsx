@@ -5,6 +5,7 @@ import { Alert, Image, Pressable, StyleSheet, Text, View, TextInput, Modal } fro
 import { ApiPost } from "../types/_apiPost";
 import { usePosts } from "../data/_demoPostData";
 import { Colors, Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import {BASE_URL} from "@/app/lib/config";
 
 export default function Post({ post }: { post: ApiPost }) {
     const router = useRouter();
@@ -55,7 +56,7 @@ export default function Post({ post }: { post: ApiPost }) {
             const token = await SecureStore.getItemAsync("authToken");
             const ip = await SecureStore.getItemAsync("serverIp");
 
-            const res = await fetch(`http://${ip}/api/posts/${post.post_id}/like/status`, {
+            const res = await fetch(`https://${BASE_URL}/api/posts/${post.post_id}/like/status`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -74,7 +75,7 @@ export default function Post({ post }: { post: ApiPost }) {
             const token = await SecureStore.getItemAsync("authToken");
             const ip = await SecureStore.getItemAsync("serverIp");
 
-            const res = await fetch(`http://${ip}/api/users/profile`, {
+            const res = await fetch(`https://${BASE_URL}/api/users/profile`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -93,7 +94,7 @@ export default function Post({ post }: { post: ApiPost }) {
         const ip = await SecureStore.getItemAsync("serverIp");
 
         // Try LIKE first
-        const likeRes = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {
+        const likeRes = await fetch(`https://${BASE_URL}/api/posts/${post.post_id}/like`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
         });
@@ -111,7 +112,7 @@ export default function Post({ post }: { post: ApiPost }) {
         // If already liked --> server returns 409
         if (likeRes.status === 409) {
             // Send UNLIKE instead
-            const unlikeRes = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {
+            const unlikeRes = await fetch(`https://${BASE_URL}/api/posts/${post.post_id}/like`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -139,7 +140,7 @@ export default function Post({ post }: { post: ApiPost }) {
     //     const token = await SecureStore.getItemAsync("authToken");
     //     const ip = await SecureStore.getItemAsync("serverIp");
     //
-    //     const res = await fetch(`http://${ip}/api/posts/${post.post_id}/comments`, {
+    //     const res = await fetch(`https://${BASE_URL}/api/posts/${post.post_id}/comments`, {
     //         method: "POST",
     //         headers: {
     //             "Content-Type": "application/json",

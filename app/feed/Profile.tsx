@@ -7,6 +7,7 @@ import { usePosts } from '../data/_demoPostData';
 import { api } from "../lib/_api";
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { useFocusEffect } from 'expo-router';
+import { BASE_URL } from "../lib/config";
 
 type ApiUser = {
     user_id: number;
@@ -81,7 +82,7 @@ export default function Profile() {
             const token = await SecureStore.getItemAsync('authToken');
             const ip = await SecureStore.getItemAsync('serverIp');
 
-            const res = await fetch(`http://${ip}/api/users/profile`, {
+            const res = await fetch(`https://${BASE_URL}/api/users/profile`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -99,8 +100,8 @@ export default function Profile() {
                 const ip = await SecureStore.getItemAsync('serverIp');
 
                 const url = viewingUserId
-                    ? `http://${ip}/api/users/public/${viewingUserId}`
-                    : `http://${ip}/api/users/profile`;
+                    ? `https://${BASE_URL}/api/users/public/${viewingUserId}`
+                    : `https://${BASE_URL}/api/users/profile`;
 
                 const res = await fetch(url, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -120,6 +121,7 @@ export default function Profile() {
                     setPhone(data.user.phone ?? '');
                     
                     const rawImage = data.user.profile_image_url ?? null;
+                    console.log(rawImage);
                     setProfileImage(rawImage);
                     
                     // Fix localhost URLs
@@ -158,7 +160,7 @@ export default function Profile() {
             const token = await SecureStore.getItemAsync('authToken');
             const ip = await SecureStore.getItemAsync('serverIp');
 
-            const res = await fetch(`http://${ip}/api/follows/is-following/${viewingUserId}`, {
+            const res = await fetch(`https://${BASE_URL}/api/follows/is-following/${viewingUserId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -177,7 +179,7 @@ export default function Profile() {
             const ip = await SecureStore.getItemAsync('serverIp');
 
             const userId = viewingUserId || loggedInUserId;
-            const res = await fetch(`http://${ip}/api/follows/counts/${userId}`, {
+            const res = await fetch(`https://${BASE_URL}/api/follows/counts/${userId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -201,7 +203,7 @@ export default function Profile() {
             const ip = await SecureStore.getItemAsync('serverIp');
 
             const endpoint = isFollowing ? 'unfollow' : 'follow';
-            const res = await fetch(`http://${ip}/api/follows/${endpoint}/${viewingUserId}`, {
+            const res = await fetch(`https://${BASE_URL}/api/follows/${endpoint}/${viewingUserId}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -229,8 +231,8 @@ export default function Profile() {
             const ip = await SecureStore.getItemAsync("serverIp");
 
             const url = viewingUserId
-                ? `http://${ip}/api/badges/user/${viewingUserId}`
-                : `http://${ip}/api/badges/my-badges`;
+                ? `https://${BASE_URL}/api/badges/user/${viewingUserId}`
+                : `https://${BASE_URL}/api/badges/my-badges`;
 
             const res = await fetch(url, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -322,7 +324,7 @@ export default function Profile() {
                 phone: phone.trim() || null,
             };
 
-            const res = await fetch(`http://${ip}/api/users/profile`, {
+            const res = await fetch(`https://${BASE_URL}/api/users/profile`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -359,7 +361,7 @@ export default function Profile() {
         const token = await SecureStore.getItemAsync('authToken');
         const ip = await SecureStore.getItemAsync('serverIp');
 
-        const res = await fetch(`http://${ip}/api/events/by-post/${post_id}`, {
+        const res = await fetch(`https://${BASE_URL}/api/events/by-post/${post_id}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -407,7 +409,7 @@ export default function Profile() {
                 type: type,
             } as any);
 
-            const res = await fetch(`http://${ip}/api/users/profile/image`, {
+            const res = await fetch(`https://${BASE_URL}/api/users/profile/image`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

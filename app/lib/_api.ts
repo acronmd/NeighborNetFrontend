@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import {BASE_URL} from "@/app/lib/config";
 
 export async function api(path: string, options: RequestInit = {}) {
     const token = await SecureStore.getItemAsync("authToken");
@@ -7,7 +8,7 @@ export async function api(path: string, options: RequestInit = {}) {
     if (!ip) throw new Error("No server IP found");
     if (!token) throw new Error("No auth token found");
 
-    const res = await fetch(`http://${ip}${path}`, {
+    const res = await fetch(`https://${BASE_URL}${path}`, {
         ...options,
         headers: {
             "Content-Type": "application/json",

@@ -5,6 +5,7 @@ import React from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import {router} from "expo-router";
+import {BASE_URL} from "@/app/lib/config";
 
 // Preset tags users can quickly select
 const PRESET_TAGS = [
@@ -115,7 +116,7 @@ export default function CreatePostScreen() {
                 } as any);
             }
 
-            const res = await fetch(`http://${ip}/api/posts`, {
+            const res = await fetch(`https://${BASE_URL}/api/posts`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

@@ -21,7 +21,7 @@ export default function ForgotUsernameScreen() {
         setLoading(true);
 
         try {
-            const res = await fetch(`http://${ip}/api/auth/forgot-username`, {
+            const res = await fetch(`https://${BASE_URL}/api/auth/forgot-username`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),

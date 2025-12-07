@@ -15,6 +15,7 @@ import { useApiPost } from "../hooks/_useApiPost";
 import { useComments } from "../hooks/_useComments";
 import * as SecureStore from "expo-secure-store";
 import { Colors, Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import {BASE_URL} from "@/app/lib/config";
 
 export default function PostDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,7 +45,7 @@ export default function PostDetailScreen() {
             const token = await SecureStore.getItemAsync('authToken');
             const ip = await SecureStore.getItemAsync('serverIp');
 
-            const res = await fetch(`http://${ip}/api/users/profile`, {
+            const res = await fetch(`https://${BASE_URL}/api/users/profile`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -75,7 +76,7 @@ export default function PostDetailScreen() {
         const token = await SecureStore.getItemAsync("authToken");
         const ip = await SecureStore.getItemAsync("serverIp");
 
-        const likeRes = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {
+        const likeRes = await fetch(`https://${BASE_URL}/api/posts/${post.post_id}/like`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
         });
@@ -86,7 +87,7 @@ export default function PostDetailScreen() {
         }
 
         if (likeRes.status === 409) {
-            const unlikeRes = await fetch(`http://${ip}/api/posts/${post.post_id}/like`, {
+            const unlikeRes = await fetch(`https://${BASE_URL}/api/posts/${post.post_id}/like`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });

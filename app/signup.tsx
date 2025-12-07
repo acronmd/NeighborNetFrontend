@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import {BASE_URL} from "@/app/lib/config";
 
 export default function SignupScreen() {
     const router = useRouter();
@@ -19,7 +20,7 @@ export default function SignupScreen() {
 
     const handleResendVerification = async () => {
         try {
-            const res = await fetch(`http://${ip}/api/auth/resend-verification`, {
+            const res = await fetch(`https://${BASE_URL}/api/auth/resend-verification`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
@@ -64,7 +65,7 @@ export default function SignupScreen() {
         setLoading(true);
 
         try {
-            const res = await fetch(`http://${ip}/api/auth/register`, {
+            const res = await fetch(`https://${BASE_URL}/api/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

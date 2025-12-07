@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { ApiPost } from "../types/_apiPost";
 import {json} from "node:stream/consumers";
+import {BASE_URL} from "@/app/lib/config";
 
 export function useApiPost(postId: number) {
     const [post, setPost] = useState<ApiPost | null>(null);
@@ -15,7 +16,7 @@ export function useApiPost(postId: number) {
         const ip = await SecureStore.getItemAsync("serverIp");
 
         try {
-            const res = await fetch(`http://${ip}/api/posts/${postId}`, {
+            const res = await fetch(`https://${BASE_URL}/api/posts/${postId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const json = await res.json();
