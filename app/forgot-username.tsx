@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
+import {BASE_URL} from "@/app/lib/config";
 
 export default function ForgotUsernameScreen() {
     const router = useRouter();
