@@ -2,18 +2,7 @@ import { EventType, useEvents } from "../data/_demoEventData";
 import { api } from "../lib/_api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import {
-    BackHandler,
-    Pressable,
-    Linking,
-    StyleSheet,
-    Text,
-    View,
-    Alert,
-    ScrollView,
-    ActivityIndicator,
-    Platform
-} from "react-native";
+import { BackHandler, Pressable, StyleSheet, Text, View, Alert, ScrollView, ActivityIndicator } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 type Attendee = {
@@ -28,7 +17,7 @@ export default function EventDetailScreen() {
     const { events } = useEvents();
 
     const eventId = Number(id);
-    const event = events.find((e: EventType & { event_id: number; poi?: string; poi_lat?: number; poi_lng?: number }) => e.event_id === eventId);
+    const event = events.find((e: EventType & { event_id: number }) => e.event_id === eventId);
 
     const [authorName, setAuthorName] = useState<string | null>(null);
     const [authorUsername, setAuthorUsername] = useState<string | null>(null);
@@ -108,6 +97,7 @@ export default function EventDetailScreen() {
     const handleSignUp = async () => {
         if (!event) return;
 
+        // Check if event is at capacity
         if (event.max_attendees && currentAttendeeCount >= event.max_attendees) {
             Alert.alert("Event Full", "This event has reached maximum capacity and is no longer accepting sign-ups.");
             return;
@@ -181,40 +171,6 @@ export default function EventDetailScreen() {
         );
     };
 
-    const openInMaps = () => {
-        if (!event?.location_lat || !event?.location_lng) return;
-
-        const lat = event.location_lat;
-        const lng = event.location_lng;
-        const label = event.location || "Event Location";
-
-        const url = Platform.select({
-            ios: `maps://maps.apple.com/?ll=${lat},${lng}&q=${encodeURIComponent(label)}`,
-            android: `geo:${lat},${lng}?q=${encodeURIComponent(label)}`
-        });
-
-        if (url) {
-            Linking.openURL(url).catch(err => console.error("Failed to open maps:", err));
-        }
-    };
-
-    const openPOIInMaps = () => {
-        if (!event?.location_lat || !event?.location_lng) return;
-
-        const lat = event.location_lat;
-        const lng = event.location_lng;
-        const label = event.poi || "POI";
-
-        const url = Platform.select({
-            ios: `maps://maps.apple.com/?ll=${lat},${lng}&q=${encodeURIComponent(label)}`,
-            android: `geo:${lat},${lng}?q=${encodeURIComponent(label)}`
-        });
-
-        if (url) {
-            Linking.openURL(url).catch(err => console.error("Failed to open POI maps:", err));
-        }
-    };
-
     if (!event) {
         return (
             <View style={styles.centered}>
@@ -239,24 +195,7 @@ export default function EventDetailScreen() {
 
                 <Text style={styles.overview}>{event.description}</Text>
 
-                {event.poi && (
-                    <Pressable onPress={openPOIInMaps}>
-                        <Text style={[styles.location, { textDecorationLine: "underline" }]}>
-                            📌 {event.poi}
-                        </Text>
-                    </Pressable>
-                )}
-
-                {event.location && (
-                    <Pressable onPress={openInMaps}>
-                        <Text style={[styles.location, { textDecorationLine: "underline" }]}>
-                            📍 {event.location}
-                        </Text>
-                    </Pressable>
-                )}
-
-
-
+                {event.location && <Text style={styles.location}>📍 {event.location}</Text>}
                 <Text style={styles.date}>
                     📅 {dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString()}
                 </Text>
@@ -270,7 +209,10 @@ export default function EventDetailScreen() {
                 {/* BUTTONS */}
                 <View style={styles.buttons}>
                     {isSignedUp ? (
-                        <Pressable style={styles.cancelBtn} onPress={handleCancelSignUp}>
+                        <Pressable
+                            style={styles.cancelBtn}
+                            onPress={handleCancelSignUp}
+                        >
                             <Text style={styles.cancelText}>Cancel Registration</Text>
                         </Pressable>
                     ) : (
@@ -324,7 +266,16 @@ const styles = StyleSheet.create({
     backgroundContainer: { flex: 1, backgroundColor: "#2E3347" },
     card: { padding: 20 },
     centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-    imageBox: { width: "100%", height: 200, marginTop: 10, borderRadius: 20, backgroundColor: "white", justifyContent: "center", alignItems: "center", overflow: "hidden" },
+    imageBox: {
+        width: "100%",
+        height: 200,
+        marginTop: 10,
+        borderRadius: 20,
+        backgroundColor: "white",
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
+    },
     image: { width: "100%", height: "100%", resizeMode: "cover" },
     title: { fontSize: 26, fontWeight: "700", color: "white", marginTop: 16 },
     host: { color: "#B8BED0", marginBottom: 10 },
@@ -342,8 +293,22 @@ const styles = StyleSheet.create({
     attendeesSection: { marginTop: 30, paddingTop: 20, borderTopWidth: 1, borderTopColor: "#B8BED0" },
     attendeesTitle: { fontSize: 20, fontWeight: "700", color: "white", marginBottom: 15 },
     attendeesList: { gap: 12 },
-    attendeeItem: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.1)", padding: 12, borderRadius: 12 },
-    attendeeAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#4A90E2", justifyContent: "center", alignItems: "center", marginRight: 12 },
+    attendeeItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(255,255,255,0.1)",
+        padding: 12,
+        borderRadius: 12,
+    },
+    attendeeAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: "#4A90E2",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 12,
+    },
     attendeeAvatarText: { color: "white", fontWeight: "700", fontSize: 18 },
     attendeeInfo: { flex: 1 },
     attendeeName: { fontSize: 16, fontWeight: "600", color: "white" },

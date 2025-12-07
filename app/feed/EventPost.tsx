@@ -18,7 +18,6 @@ export default function EventPost({
                                       post_id,
                                       description,
                                       location,
-                                      poi,
                                       event_date,
                                       max_attendees,
                                       current_attendees,
@@ -83,8 +82,7 @@ export default function EventPost({
 
                 <Text style={styles.location}>{description}</Text>
 
-                {location && <Text style={styles.location}>{poi}</Text>}
-                {!poi && location && <Text style={styles.location}>{location}</Text>}
+                {location && <Text style={styles.location}>{location}</Text>}
                 <Text style={styles.date}>{dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString()}</Text>
 
                 <Text style={styles.attendingText}>

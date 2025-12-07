@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { ActivityIndicator, View } from "react-native";
-import 'leaflet/dist/leaflet.css';
 
 export default function Root() {
     const router = useRouter();
