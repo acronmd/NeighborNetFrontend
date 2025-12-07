@@ -35,24 +35,58 @@ export default function NewEventPage() {
 
     const [locationPoi, setLocationPoi] = useState<string>(parseParam(poi) || '');
 
-    // Format date to MySQL DATETIME format: YYYY-MM-DD HH:MM:SS
+    // Format date to MySQL DATETIME in UTC
     const formatDateForMySQL = (date: Date) => {
         const pad = (n: number) => n.toString().padStart(2, '0');
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+
+        // Convert to UTC components
+        const year = date.getUTCFullYear();
+        const month = pad(date.getUTCMonth() + 1);
+        const day = pad(date.getUTCDate());
+        const hours = pad(date.getUTCHours());
+        const minutes = pad(date.getUTCMinutes());
+        const seconds = pad(date.getUTCSeconds());
+
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     };
+
+
 
     const showDateTimePicker = () => {
         if (Platform.OS === 'android') {
+            // Step 1: pick date
             DateTimePickerAndroid.open({
                 value: eventDate,
                 onChange: (event, selectedDate) => {
-                    if (selectedDate) setEventDate(selectedDate);
+                    if (selectedDate) {
+                        const currentDate = new Date(selectedDate);
+
+                        // Step 2: pick time immediately after
+                        DateTimePickerAndroid.open({
+                            value: currentDate,
+                            onChange: (event, selectedTime) => {
+                                if (selectedTime) {
+                                    // combine date and time
+                                    const newDateTime = new Date(
+                                        currentDate.getFullYear(),
+                                        currentDate.getMonth(),
+                                        currentDate.getDate(),
+                                        selectedTime.getHours(),
+                                        selectedTime.getMinutes(),
+                                        selectedTime.getSeconds()
+                                    );
+                                    setEventDate(newDateTime);
+                                }
+                            },
+                            mode: 'time',
+                            is24Hour: false,
+                        });
+                    }
                 },
                 mode: 'date',
-                is24Hour: true,
             });
         } else {
-            setShowIOSPicker(true);
+            setShowIOSPicker(true); // iOS already supports 'datetime'
         }
     };
 
