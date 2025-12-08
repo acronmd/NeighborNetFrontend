@@ -17,6 +17,29 @@ import * as SecureStore from "expo-secure-store";
 import { Colors, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import {BASE_URL} from "@/app/lib/config";
 
+function FallbackAvatar({ name, size = 48 }: { name?: string; size?: number }) {
+    const initials =
+        name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+
+    return (
+        <View
+            style={{
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                backgroundColor: "#ccc",
+                justifyContent: "center",
+                alignItems: "center",
+            }}
+        >
+            <Text style={{ color: "#333", fontWeight: "700", fontSize: size / 2.5 }}>
+                {initials}
+            </Text>
+        </View>
+    );
+}
+
+
 export default function PostDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
@@ -181,15 +204,12 @@ export default function PostDetailScreen() {
                 <View style={styles.header}>
                     <Pressable onPress={() => router.push(`/profile/${post.user_id}`)}>
                         <View style={styles.avatarContainer}>
-                            <Image
-                                source={
-                                    post.author_image
-                                        ? { uri: post.author_image }
-                                        : require('@/assets/images/default-avatar.png')
-                                }
-                                style={styles.avatar}
-                            />
-                            <View style={styles.avatarRing} />
+                            {post.author_image ? (
+                                <Image source={{ uri: post.author_image }} style={styles.avatar} />
+                            ) : (
+                                <FallbackAvatar name={post.display_name} size={48} />
+                            )}
+                        <View style={styles.avatarRing} />
                         </View>
                     </Pressable>
 
@@ -254,14 +274,11 @@ export default function PostDetailScreen() {
                     ) : (
                         comments.map((comment) => (
                             <View key={comment.comment_id} style={styles.comment}>
-                                <Image
-                                    source={
-                                        comment.author_image
-                                            ? { uri: comment.author_image }
-                                            : require('@/assets/images/default-avatar.png')
-                                    }
-                                    style={styles.commentAvatar}
-                                />
+                                {comment.author_image ? (
+                                    <Image source={{ uri: comment.author_image }} style={styles.commentAvatar} />
+                                ) : (
+                                    <FallbackAvatar name={comment.author_name} size={36} />
+                                )}
 
                                 <View style={styles.commentBody}>
                                     <Text style={styles.commentAuthor}>

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "neighbornet",
+    "name": "Neighbornet",
     "slug": "neighbornet",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,6 +12,13 @@
       "supportsTablet": true
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDJ5sZ6mSVb2_h94hOtK5ULQGyWhXn3Anw"
+        }
+      },
+      "package": "com.groupfive.neighbornet",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -44,6 +51,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1760905e-475f-4d75-9b16-6c9e3e381bc4"
+      }
     }
   }
 }
