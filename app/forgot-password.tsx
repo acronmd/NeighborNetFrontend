@@ -6,7 +6,6 @@ import {BASE_URL} from "@/app/lib/config";
 export default function ForgotPasswordScreen() {
     const router = useRouter();
 
-    const [ip, setIp] = useState("");
     const [email, setEmail] = useState("");
     const [step, setStep] = useState<'request' | 'verify'>('request');
     const [verificationCode, setVerificationCode] = useState("");
@@ -17,11 +16,6 @@ export default function ForgotPasswordScreen() {
 
     const handleRequestReset = async () => {
         setError("");
-
-        if (!ip || !email) {
-            setError("Please enter server IP and email");
-            return;
-        }
 
         setLoading(true);
 

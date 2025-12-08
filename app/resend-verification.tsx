@@ -22,13 +22,6 @@ export default function ResendVerificationScreen() {
 
         setIsLoading(true);
         try {
-            const ip = await SecureStore.getItemAsync('serverIp');
-            
-            if (!ip) {
-                Alert.alert('Error', 'Server IP not configured. Please log in first to set it.');
-                setIsLoading(false);
-                return;
-            }
 
             const res = await fetch(`https://${BASE_URL}/api/auth/resend-verification`, {
                 method: 'POST',

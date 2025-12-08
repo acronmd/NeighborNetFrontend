@@ -6,18 +6,12 @@ import {BASE_URL} from "@/app/lib/config";
 export default function ForgotUsernameScreen() {
     const router = useRouter();
 
-    const [ip, setIp] = useState("");
     const [email, setEmail] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
     const handleRecoverUsername = async () => {
         setError("");
-
-        if (!ip || !email) {
-            setError("Please enter server IP and email");
-            return;
-        }
 
         setLoading(true);
 

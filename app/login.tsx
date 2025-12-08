@@ -7,7 +7,6 @@ import {BASE_URL} from "@/app/lib/config"; // if using expo-router
 export default function LoginScreen() {
     const router = useRouter();
 
-    const [ip, setIp] = useState("192.168.1.205:5050");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -17,11 +16,6 @@ export default function LoginScreen() {
     const handleLogin = async () => {
         setError("");
         setShowResendOption(false);
-
-        if (!ip || !email || !password) {
-            setError("All fields are required");
-            return;
-        }
 
         try {
             const res = await fetch(`https://${BASE_URL}/api/auth/login`, {
@@ -45,7 +39,6 @@ export default function LoginScreen() {
 
             // Save token and IP securely
             await SecureStore.setItemAsync("authToken", data.token);
-            await SecureStore.setItemAsync("serverIp", ip);
 
             // Navigate to main app
             router.replace("/(tabs)/feed"); // adjust route to your home page

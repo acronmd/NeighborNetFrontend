@@ -7,7 +7,6 @@ import {BASE_URL} from "@/app/lib/config";
 export default function SignupScreen() {
     const router = useRouter();
 
-    const [ip, setIp] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,7 +46,7 @@ export default function SignupScreen() {
         setError("");
 
         // Validation
-        if (!ip || !email || !password || !name || !displayName || !username) {
+        if (!email || !password || !name || !displayName || !username) {
             setError("Required fields: IP, email, password, name, display name, username");
             return;
         }
@@ -86,8 +85,6 @@ export default function SignupScreen() {
                 return;
             }
 
-            // Save IP for future use
-            await SecureStore.setItemAsync("serverIp", ip);
 
             Alert.alert(
                 "Account Created!", 
