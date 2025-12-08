@@ -14,7 +14,7 @@
     "android": {
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyDJ5sZ6mSVb2_h94hOtK5ULQGyWhXn3Anw"
+          "apiKey": "ENTER_API_KEY"
         }
       },
       "package": "com.groupfive.neighbornet",

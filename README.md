@@ -7,7 +7,7 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 1. Install dependencies
 
    ```bash
-   npm install
+   npx expo install
    ```
 
 2. Start the app
@@ -15,6 +15,25 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```bash
    npx expo start
    ```
+
+## To run NeighborNet, please ensure the database is live at either https://register.acrn.me, or a similar https protected domain
+
+## To make changes to the running backend, please check 
+### 'app/lib/config.ts'
+     "export const BASE_URL = "new_https_backend_url";"
+
+## To ensure Google Maps API works (Required for many app functions), please ensure you're testing with Expo Go, or providing your own Google Maps API Key in
+###     "app.json"
+      "expo" : {
+         "android" : {
+            "config": {
+               "googleMaps": {
+                  "apiKey": "ENTER_API_KEY_HERE"
+               }
+            },
+         },
+      }
+      
 
 In the output, you'll find options to open the app in a
 
@@ -25,13 +44,6 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
