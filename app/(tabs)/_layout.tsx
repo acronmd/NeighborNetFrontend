@@ -3,9 +3,11 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router, Tabs } from 'expo-router';
 import React, {useEffect, useState} from 'react';
-import {Text, TouchableOpacity, View} from 'react-native';
+import {Button, Modal, Text, TouchableOpacity, View} from 'react-native';
+import Slider from '@react-native-community/slider'
 import { api } from '@/app/lib/_api';
 import { notificationEmitter } from "@/app/emitter/notificationEmitter";
+import {useRadius} from "@/app/lib/RadiusContext";
 
 type NotificationType = {
     notification_id: number;
@@ -17,6 +19,99 @@ type NotificationType = {
     is_read: boolean;
     created_at: string;
 };
+
+interface Props {
+    color: string;
+    notifications: NotificationType[];
+}
+
+export function FeedHeaderButtons({ color, notifications }: Props) {
+    const { radiusMiles, setRadiusMiles } = useRadius();
+    const [modalVisible, setModalVisible] = useState(false);
+    const [tempRadius, setTempRadius] = useState(radiusMiles);
+
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+
+    const applyRadius = () => {
+        setRadiusMiles(tempRadius);
+        setModalVisible(false);
+    };
+
+    return (
+        <View style={{ flexDirection: 'row' }}>
+            {/* Notifications button */}
+            <TouchableOpacity
+                onPress={() => router.push('/notifications')}
+                style={{ marginRight: 16 }}
+            >
+                <IconSymbol size={24} name="bell.fill" color={color} />
+                {unreadCount > 0 && (
+                    <View
+                        style={{
+                            position: 'absolute',
+                            top: -4,
+                            right: -4,
+                            backgroundColor: '#E74C3C',
+                            borderRadius: 8,
+                            minWidth: 16,
+                            height: 16,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            paddingHorizontal: 4,
+                        }}
+                    >
+                        <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                            {unreadCount}
+                        </Text>
+                    </View>
+                )}
+            </TouchableOpacity>
+
+            {/* Filter / radius button */}
+            <TouchableOpacity onPress={() => setModalVisible(true)} style={{ marginRight: 16 }}>
+                <IconSymbol size={24} name="slider.horizontal.3" color={color} />
+            </TouchableOpacity>
+
+            {/* Modal */}
+            <Modal visible={modalVisible} transparent animationType="slide">
+                <View
+                    style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                    }}
+                >
+                    <View
+                        style={{
+                            backgroundColor: 'white',
+                            padding: 20,
+                            borderRadius: 10,
+                            width: 300,
+                        }}
+                    >
+                        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>
+                            Adjust Post/Event Viewing Radius (miles)
+                        </Text>
+                        <Slider
+                            minimumValue={1}
+                            maximumValue={25}
+                            step={1}
+                            value={tempRadius}
+                            onValueChange={setTempRadius}
+                        />
+                        <Text style={{ textAlign: 'center', marginVertical: 8 }}>
+                            {tempRadius} miles
+                        </Text>
+                        <Button title="Apply" onPress={applyRadius} />
+                        <Button title="Cancel" onPress={() => setModalVisible(false)} color="grey" />
+                    </View>
+                </View>
+            </Modal>
+        </View>
+    );
+}
+
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
@@ -52,6 +147,14 @@ export default function RootLayout() {
         return unsubscribe;
     }, []);
 
+    const [modalVisible, setModalVisible] = useState(false);
+    const [tempRadius, setTempRadius] = useState(5); // default is 5
+    const { radiusMiles, setRadiusMiles } = useRadius();
+    const applyRadius = () => {
+        setRadiusMiles(tempRadius);
+        setModalVisible(false);
+    };
+
     return (
         <Tabs
             screenOptions={{
@@ -83,38 +186,9 @@ export default function RootLayout() {
                 options={{
                     title: 'Feed',
                     tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-                    headerRight: () => {
-                        const unreadCount = notifications.filter(n => !n.is_read).length;
-
-                        return (
-                            <TouchableOpacity
-                                onPress={() => router.push('/notifications')}
-                                style={{ marginRight: 16 }}
-                            >
-                                <IconSymbol size={24} name="house.fill" color={Colors[colorScheme ?? 'dark'].tint} />
-                                {unreadCount > 0 && (
-                                    <View
-                                        style={{
-                                            position: 'absolute',
-                                            top: -4,
-                                            right: -4,
-                                            backgroundColor: '#E74C3C',
-                                            borderRadius: 8,
-                                            minWidth: 16,
-                                            height: 16,
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            paddingHorizontal: 4,
-                                        }}
-                                    >
-                                        <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
-                                            {unreadCount}
-                                        </Text>
-                                    </View>
-                                )}
-                            </TouchableOpacity>
-                        );
-                    },
+                    headerRight: () => (
+                        <FeedHeaderButtons color={Colors[colorScheme ?? 'dark'].tint} notifications={notifications} />
+                    ),
                 }}
             />
             <Tabs.Screen
@@ -175,6 +249,13 @@ export default function RootLayout() {
                 options={{
                     title: 'Chat',
                     tabBarIcon: ({ color }) => <IconSymbol size={28} name="message.fill" color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="map-screen"
+                options={{
+                    title: 'Map',
+                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
                 }}
             />
         </Tabs>

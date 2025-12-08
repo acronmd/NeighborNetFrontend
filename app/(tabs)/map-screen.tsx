@@ -4,6 +4,7 @@ import MapView, { Marker, Circle } from "react-native-maps";
 import * as Location from "expo-location";
 import { api } from "@/app/lib/_api";
 import {useFocusEffect, useRouter} from "expo-router";
+import {useRadius} from "@/app/lib/RadiusContext";
 
 export interface Event {
     event_id: number;
@@ -26,7 +27,8 @@ export default function MapScreen() {
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const [loading, setLoading] = useState(true);
-    const radiusKm = 10;
+    const { radiusMiles } = useRadius();
+    const radiusKm = radiusMiles * 1.60934;
 
     const router = useRouter();
 
@@ -75,7 +77,7 @@ export default function MapScreen() {
         };
 
         fetchEvents();
-    }, [userLocation]);
+    }, [userLocation, radiusMiles]);
 
     const fetchNearbyEvents = async () => {
         if (!userLocation) return;
@@ -103,7 +105,7 @@ export default function MapScreen() {
         useCallback(() => {
             fetchNearbyEvents();
             setSelectedEvent(null); // reset overlay
-        }, [userLocation])
+        }, [userLocation, radiusMiles])
     );
 
 
