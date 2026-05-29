@@ -10,6 +10,7 @@ import {
     Alert
 } from 'react-native';
 import { api } from "../lib/_api";
+import { getSocket, disconnectSocket } from "../lib/socket";
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import {useSearchParams} from "expo-router/build/hooks";
@@ -96,6 +97,30 @@ export default function NotificationsScreen() {
 
     useEffect(() => {
         checkAuthAndFetch();
+    }, []);
+
+    useEffect(() => {
+        let active = true;
+
+        getSocket().then((socket) => {
+            if (!active) return;
+
+            socket.on('new_notification', (notification: Notification) => {
+                setNotifications(prev => [notification, ...prev]);
+                notificationEmitter.emit();
+            });
+
+            socket.on('unread_count', ({ count }: { count: number }) => {
+                notificationEmitter.emit();
+            });
+        }).catch(() => {
+            // socket unavailable — polling via pull-to-refresh still works
+        });
+
+        return () => {
+            active = false;
+            disconnectSocket();
+        };
     }, []);
 
     const checkAuthAndFetch = async () => {

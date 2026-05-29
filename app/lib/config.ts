@@ -1,1 +1,1 @@
-export const BASE_URL = "register.acrn.me";
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "register.acrn.me";
